@@ -1,0 +1,2357 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MATRIX Framework Builder v1.0.1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{
+  --green:#00A651;--green-dark:#007a3d;--green-light:#e6f7ee;
+  --blue:#2563eb;--blue-light:#eff6ff;
+  --orange:#f59e0b;--orange-light:#fffbeb;
+  --red:#ef4444;--red-light:#fef2f2;
+  --gray:#f4f6f8;--gray-2:#e5e7eb;--gray-3:#9ca3af;
+  --text:#1a1a2e;--text-2:#4b5563;
+  --white:#ffffff;--shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:var(--text);min-height:100vh;}
+.header{background:linear-gradient(135deg,var(--green) 0%,var(--green-dark) 100%);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,166,81,0.3);position:sticky;top:0;z-index:100;}
+.header-logo{color:white;font-size:20px;font-weight:800;letter-spacing:-0.5px;display:flex;align-items:center;gap:10px;}
+.header-logo span{opacity:0.6;font-weight:400;font-size:13px;}
+.header-actions{display:flex;gap:10px;align-items:center;}
+.btn-settings{background:rgba(255,255,255,0.15);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.2s;}
+.btn-settings:hover{background:rgba(255,255,255,0.25);}
+.layout{display:flex;min-height:calc(100vh - 60px);}
+.sidebar{width:240px;background:white;border-right:1px solid var(--gray-2);padding:20px 0;flex-shrink:0;}
+.main{flex:1;padding:28px;overflow:auto;max-width:1200px;}
+.nav-section{padding:8px 20px 4px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-3);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:14px;color:var(--text-2);cursor:pointer;transition:all 0.15s;border-left:3px solid transparent;}
+.nav-item:hover{background:var(--gray);color:var(--text);}
+.nav-item.active{background:var(--green-light);color:var(--green-dark);border-left-color:var(--green);font-weight:600;}
+.nav-item .badge-count{margin-left:auto;background:var(--green);color:white;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;}
+.view{display:none;}
+.view.active{display:block;}
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:24px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.page-header p{font-size:14px;color:var(--text-2);}
+.card{background:white;border-radius:12px;padding:24px;box-shadow:var(--shadow);margin-bottom:20px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+.card-title i{color:var(--green);}
+label{font-size:13px;font-weight:600;color:var(--text-2);display:block;margin-bottom:6px;}
+input,select,textarea{width:100%;padding:9px 12px;border:1.5px solid var(--gray-2);border-radius:8px;font-size:13px;color:var(--text);background:white;transition:border-color 0.2s;font-family:inherit;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);}
+textarea{resize:vertical;min-height:80px;}
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:7px;transition:all 0.2s;}
+.btn-primary{background:var(--green);color:white;}
+.btn-primary:hover{background:var(--green-dark);}
+.btn-secondary{background:var(--gray);color:var(--text-2);border:1.5px solid var(--gray-2);}
+.btn-secondary:hover{background:var(--gray-2);}
+.btn-danger{background:var(--red-light);color:var(--red);border:1.5px solid #fecaca;}
+.btn-danger:hover{background:#fee2e2;}
+.btn-blue{background:var(--blue);color:white;}
+.btn-blue:hover{background:#1d4ed8;}
+.btn:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.drop-zone{border:2.5px dashed var(--gray-2);border-radius:12px;padding:48px 32px;text-align:center;cursor:pointer;transition:all 0.2s;background:white;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--green);background:var(--green-light);}
+.drop-zone i{font-size:40px;color:var(--gray-3);margin-bottom:12px;display:block;}
+.drop-zone.drag-over i{color:var(--green);}
+.drop-zone h3{font-size:16px;font-weight:700;margin-bottom:6px;}
+.drop-zone p{font-size:13px;color:var(--text-2);}
+.file-list{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+.file-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--gray);border-radius:10px;border:1.5px solid var(--gray-2);}
+.file-item.processing{border-color:var(--orange);background:var(--orange-light);}
+.file-item.done{border-color:var(--green);background:var(--green-light);}
+.file-item.error{border-color:var(--red);background:var(--red-light);}
+.file-icon{font-size:20px;flex-shrink:0;}
+.file-info{flex:1;}
+.file-name{font-size:13px;font-weight:600;color:var(--text);}
+.file-meta{font-size:11px;color:var(--text-2);margin-top:2px;}
+.file-status{font-size:12px;font-weight:600;}
+.file-status.processing{color:var(--orange);}
+.file-status.done{color:var(--green);}
+.file-status.error{color:var(--red);}
+.file-actions{display:flex;gap:6px;}
+.progress-bar{height:6px;background:var(--gray-2);border-radius:3px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width 0.4s ease;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-green{background:#dcfce7;color:#166534;}
+.badge-orange{background:#ffedd5;color:#9a3412;}
+.badge-red{background:#fee2e2;color:#991b1b;}
+.badge-blue{background:#dbeafe;color:#1e40af;}
+.badge-gray{background:#f3f4f6;color:#374151;}
+.badge-purple{background:#f3e8ff;color:#6b21a8;}
+.materia-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+.materia-chip{padding:10px 14px;border-radius:10px;border:2px solid var(--gray-2);cursor:pointer;text-align:center;font-size:13px;font-weight:600;transition:all 0.2s;background:white;color:var(--text-2);}
+.materia-chip:hover{border-color:var(--green);color:var(--green-dark);}
+.materia-chip.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);}
+.materia-chip .chip-icon{font-size:20px;display:block;margin-bottom:4px;}
+.cdl-row{display:flex;gap:10px;flex-wrap:wrap;}
+.cdl-btn{padding:7px 16px;border-radius:20px;border:2px solid var(--gray-2);cursor:pointer;font-size:13px;font-weight:600;background:white;color:var(--text-2);transition:all 0.2s;}
+.cdl-btn.selected{border-color:var(--blue);background:var(--blue-light);color:var(--blue);}
+.freq-table-wrapper{overflow-x:auto;}
+table.freq-table{width:100%;border-collapse:collapse;font-size:13px;}
+table.freq-table th{background:var(--green);color:white;padding:10px 14px;text-align:left;font-weight:700;font-size:12px;white-space:nowrap;}
+table.freq-table td{padding:9px 14px;border-bottom:1px solid var(--gray-2);vertical-align:middle;}
+table.freq-table tr:hover td{background:#f9fafb;}
+.freq-cell{display:flex;align-items:center;gap:8px;}
+.freq-pct{font-weight:700;font-size:12px;min-width:36px;}
+.coverage-badge{display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.coverage-universal{background:var(--green);}
+.coverage-profile{background:var(--orange);}
+.coverage-discretionary{background:var(--gray-3);}
+.module-card{background:var(--gray);border-radius:10px;padding:16px;border-left:4px solid var(--green);margin-bottom:12px;}
+.module-card.profile{border-left-color:var(--orange);}
+.module-card.discretionary{border-left-color:var(--gray-3);}
+.module-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.module-title{font-size:14px;font-weight:700;}
+.module-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.module-tag{background:white;border:1px solid var(--gray-2);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text-2);}
+.json-output{background:#1e1e2e;color:#cdd6f4;border-radius:10px;padding:20px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;overflow-x:auto;max-height:500px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;}
+.callout{border-radius:10px;padding:14px 18px;display:flex;gap:12px;align-items:flex-start;margin:12px 0;font-size:13px;line-height:1.6;}
+.callout.info{background:var(--blue-light);border:1px solid #bfdbfe;color:#1e40af;}
+.callout.warning{background:var(--orange-light);border:1px solid #fde68a;color:#92400e;}
+.callout.success{background:var(--green-light);border:1px solid #bbf7d0;color:#166534;}
+.callout.danger{background:var(--red-light);border:1px solid #fecaca;color:#991b1b;}
+.callout .ci{font-size:18px;flex-shrink:0;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+.stat-card{background:white;border-radius:10px;padding:16px;box-shadow:var(--shadow);text-align:center;}
+.stat-value{font-size:28px;font-weight:800;color:var(--green);line-height:1;margin-bottom:4px;}
+.stat-label{font-size:12px;color:var(--text-2);font-weight:500;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:16px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--gray-2);display:flex;align-items:center;justify-content:space-between;}
+.modal-header h3{font-size:17px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray-3);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--gray-2);display:flex;justify-content:flex-end;gap:10px;}
+.settings-section{margin-bottom:24px;}
+.settings-section h3{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text);border-bottom:1px solid var(--gray-2);padding-bottom:8px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.form-group{margin-bottom:14px;}
+.review-item{background:var(--gray);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.review-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.review-item-title{font-size:13px;font-weight:700;}
+.review-args{display:flex;flex-wrap:wrap;gap:6px;}
+.arg-chip{background:white;border:1.5px solid var(--gray-2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all 0.15s;}
+.arg-chip:hover{border-color:var(--red);color:var(--red);}
+.arg-chip.confirmed{border-color:var(--green);background:var(--green-light);color:var(--green-dark);}
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{padding:16px;}
+  .form-row{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+<header class="header">
+  <div class="header-logo">
+    <i class="fas fa-sitemap"></i>
+    MATRIX Framework Builder
+    <span>v1.0.1</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn-settings" id="btnOpenSettings">
+      <i class="fas fa-cog"></i> Impostazioni
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="nav-section">Flusso di lavoro</div>
+    <div class="nav-item active" onclick="showView('uploadView')">
+      <i class="fas fa-upload"></i> 1. Carica PDF
+      <span class="badge-count" id="countUpload">0</span>
+    </div>
+    <div class="nav-item" onclick="showView('reviewView')">
+      <i class="fas fa-check-double"></i> 2. Revisione AI
+      <span class="badge-count" id="countReview">0</span>
+    </div>
+    <div class="nav-item" onclick="showView('frequencyView')">
+      <i class="fas fa-chart-bar"></i> 3. Frequenze
+    </div>
+    <div class="nav-item" onclick="showView('builderView')">
+      <i class="fas fa-tools"></i> 4. Framework Builder
+    </div>
+    <div class="nav-item" onclick="showView('exportView')">
+      <i class="fas fa-file-export"></i> 5. Export
+    </div>
+    <div class="nav-section" style="margin-top:16px">Sessioni</div>
+    <div class="nav-item" onclick="showView('sessionsView')">
+      <i class="fas fa-history"></i> Sessioni salvate
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ═══ VIEW 1: UPLOAD ═══ -->
+    <div class="view active" id="uploadView">
+      <div class="page-header">
+        <h1><i class="fas fa-upload" style="color:var(--green)"></i> Carica i programmi PDF</h1>
+        <p>Carica i PDF dei programmi universitari. L'AI estrarrà automaticamente gli argomenti disciplinari.</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-book"></i> Seleziona la materia</div>
+        </div>
+        <div class="materia-grid" id="materiaGrid"></div>
+      </div>
+      <div class="card" id="cdlCard" style="display:none">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-graduation-cap"></i> Classe di laurea dei programmi da caricare</div>
+        </div>
+        <div class="cdl-row" id="cdlRow"></div>
+      </div>
+      <div class="card" id="uploadCard" style="display:none">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-file-pdf"></i> Carica i PDF</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="startProcessing()" id="btnProcess" disabled>
+              <i class="fas fa-robot"></i> Avvia elaborazione AI
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="clearFiles()">
+              <i class="fas fa-trash"></i> Svuota
+            </button>
+          </div>
+        </div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <h3>Trascina i PDF qui</h3>
+          <p>oppure clicca per selezionare — puoi caricare più file contemporaneamente</p>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".pdf" style="display:none" onchange="handleFiles(this.files)">
+        <div class="file-list" id="fileList"></div>
+        <div id="processingProgress" style="display:none;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span id="progressLabel">Elaborazione in corso...</span>
+            <span id="progressPct">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="mainProgressFill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stats-grid" id="uploadStats" style="display:none">
+        <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">PDF caricati</div></div>
+        <div class="stat-card"><div class="stat-value" id="statDone">0</div><div class="stat-label">Elaborati</div></div>
+        <div class="stat-card"><div class="stat-value" id="statArgs">0</div><div class="stat-label">Argomenti estratti</div></div>
+        <div class="stat-card"><div class="stat-value" id="statErrors">0</div><div class="stat-label">Errori</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW 2: REVISIONE ═══ -->
+    <div class="view" id="reviewView">
+      <div class="page-header">
+        <h1><i class="fas fa-check-double" style="color:var(--green)"></i> Revisione argomenti</h1>
+        <p>Verifica e correggi gli argomenti estratti dall'AI prima dell'analisi delle frequenze.</p>
+      </div>
+      <div class="callout info">
+        <span class="ci">💡</span>
+        <div>Clicca su un argomento per rimuoverlo. Usa il campo testo per aggiungerne manualmente. Le modifiche si riflettono direttamente nella tabella delle frequenze.</div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-filter"></i> Filtri</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="reviewMateriaFilter" style="width:200px" onchange="renderReviewList()">
+              <option value="">Tutte le materie</option>
+            </select>
+            <select id="reviewCdlFilter" style="width:180px" onchange="renderReviewList()">
+              <option value="">Tutti i CdL</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="proceedToFrequency()">
+              <i class="fas fa-arrow-right"></i> Procedi alle frequenze
+            </button>
+          </div>
+        </div>
+        <div id="reviewList"></div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW 3: FREQUENZE ═══ -->
+    <div class="view" id="frequencyView">
+      <div class="page-header">
+        <h1><i class="fas fa-chart-bar" style="color:var(--green)"></i> Analisi delle frequenze</h1>
+        <p>Tabella di occorrenza degli argomenti per materia e classe di laurea.</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-table"></i> Tabella frequenze</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="freqMateriaFilter" style="width:220px" onchange="renderFrequencyTable()">
+              <option value="">Seleziona materia...</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="downloadCsv()">
+              <i class="fas fa-file-csv"></i> CSV
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="buildFramework()">
+              <i class="fas fa-tools"></i> Genera Framework
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+            <span class="coverage-badge coverage-universal"></span>
+            <strong>Universal</strong> &gt;75% su tutti i CdL
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+            <span class="coverage-badge coverage-profile"></span>
+            <strong>Profile-dependent</strong> &gt;60% su almeno un CdL
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+            <span class="coverage-badge coverage-discretionary"></span>
+            <strong>Discretionary</strong> &lt;60% su tutti i CdL
+          </div>
+        </div>
+        <div class="freq-table-wrapper" id="freqTableWrapper">
+          <div style="text-align:center;padding:40px;color:var(--gray-3)">
+            <i class="fas fa-chart-bar" style="font-size:32px;display:block;margin-bottom:8px"></i>
+            Seleziona una materia per visualizzare la tabella
+          </div>
+        </div>
+      </div>
+      <div class="card" id="confidenceCard" style="display:none">
+        <div class="card-title" style="margin-bottom:12px">
+          <i class="fas fa-info-circle"></i> Affidabilità statistica del campione
+        </div>
+        <div id="confidenceInfo"></div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW 4: BUILDER ═══ -->
+    <div class="view" id="builderView">
+      <div class="page-header">
+        <h1><i class="fas fa-tools" style="color:var(--green)"></i> Framework Builder</h1>
+        <p>Revisione e personalizzazione del framework generato automaticamente.</p>
+      </div>
+      <div id="builderEmpty" style="text-align:center;padding:60px 20px;color:var(--gray-3)">
+        <i class="fas fa-tools" style="font-size:48px;display:block;margin-bottom:12px"></i>
+        <p>Completa l'analisi delle frequenze e clicca "Genera Framework" per iniziare.</p>
+      </div>
+      <div id="builderContent" style="display:none">
+
+        <!-- Metadati -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><i class="fas fa-info-circle"></i> Metadati framework</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>ID Framework</label>
+              <input type="text" id="fwId" placeholder="es. psicologia_generale">
+            </div>
+            <div class="form-group">
+              <label>Nome esteso</label>
+              <input type="text" id="fwName" placeholder="es. Psicologia Generale">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Area disciplinare (Subject)</label>
+              <input type="text" id="fwSubject" placeholder="es. Psicologia">
+            </div>
+            <div class="form-group">
+              <label>Versione</label>
+              <input type="text" id="fwVersion" value="1.0.0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Context Strategy</label>
+            <textarea id="fwContextStrategy" rows="4"
+              placeholder="Clicca 'Genera con AI' per generare automaticamente..."></textarea>
+          </div>
+          <div style="margin-top:-6px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+            <button class="btn btn-blue" id="btnGenerateAI" onclick="generateWithAI()">
+              <i class="fas fa-robot"></i> Genera con AI
+            </button>
+            <span id="aiGeneratingLabel" style="display:none;font-size:13px;color:var(--blue)">
+              <i class="fas fa-spinner fa-spin"></i> Generazione in corso...
+            </span>
+          </div>
+        </div>
+
+        <!-- Moduli -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-list"></i> Moduli del framework</div>
+            <button class="btn btn-secondary btn-sm" onclick="addModule()">
+              <i class="fas fa-plus"></i> Aggiungi modulo
+            </button>
+          </div>
+          <div class="callout info" style="margin-bottom:16px">
+            <span class="ci">ℹ️</span>
+            <div>Moduli generati automaticamente dalle frequenze.
+            <strong style="color:var(--green)">Verde = Universal</strong> ·
+            <strong style="color:var(--orange)">Arancio = Profile-dependent</strong> ·
+            <strong style="color:var(--gray-3)">Grigio = Discretionary</strong>.</div>
+          </div>
+          <div id="modulesList"></div>
+        </div>
+
+        <!-- Evaluation Criteria -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-clipboard-check"></i> Criteri di valutazione diagnostica</div>
+          </div>
+          <div class="callout info" style="margin-bottom:16px">
+            <span class="ci">ℹ️</span>
+            <div>I criteri diagnostici guidano MATRIX nell'analisi dei programmi studente. Generali con AI o modificali manualmente.</div>
+          </div>
+          <div id="evaluationCriteriaList"></div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addEvaluationCriterion()">
+            <i class="fas fa-plus"></i> Aggiungi criterio
+          </button>
+        </div>
+
+        <!-- Program Profiles -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-user-graduate"></i> Program Profiles per CdL</div>
+          </div>
+          <div id="profilesList"></div>
+        </div>
+
+        <!-- JSON Preview -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-code"></i> Anteprima JSON</div>
+            <button class="btn btn-secondary btn-sm" onclick="refreshJsonPreview()">
+              <i class="fas fa-sync"></i> Aggiorna
+            </button>
+          </div>
+          <div class="json-output" id="jsonPreview"></div>
+        </div>
+
+      </div><!-- fine builderContent -->
+    </div>
+
+    <!-- ═══ VIEW 5: EXPORT ═══ -->
+    <div class="view" id="exportView">
+      <div class="page-header">
+        <h1><i class="fas fa-file-export" style="color:var(--green)"></i> Export</h1>
+        <p>Esporta i framework generati nei formati compatibili con MATRIX.</p>
+      </div>
+      <div id="exportEmpty" style="text-align:center;padding:60px 20px;color:var(--gray-3)">
+        <i class="fas fa-file-export" style="font-size:48px;display:block;margin-bottom:12px"></i>
+        <p>Nessun framework generato. Completa il Builder per procedere all'export.</p>
+      </div>
+      <div id="exportContent" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:20px">
+            <i class="fas fa-download"></i> Formati disponibili
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">
+
+            <div style="background:var(--green-light);border-radius:12px;padding:20px;text-align:center">
+              <i class="fas fa-file-code" style="font-size:32px;color:var(--green);display:block;margin-bottom:10px"></i>
+              <div style="font-weight:700;margin-bottom:6px">JSON Framework</div>
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:14px">Pronto per MATRIX Analisi Programmi</div>
+              <button class="btn btn-primary" onclick="downloadJson()" style="width:100%">
+                <i class="fas fa-download"></i> Scarica JSON
+              </button>
+            </div>
+
+            <div style="background:var(--blue-light);border-radius:12px;padding:20px;text-align:center">
+              <i class="fas fa-file-csv" style="font-size:32px;color:var(--blue);display:block;margin-bottom:10px"></i>
+              <div style="font-weight:700;margin-bottom:6px">Tabella frequenze CSV</div>
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:14px">Per la direzione editoriale</div>
+              <button class="btn btn-blue" onclick="downloadCsv()" style="width:100%">
+                <i class="fas fa-download"></i> Scarica CSV
+              </button>
+            </div>
+
+            <div style="background:var(--orange-light);border-radius:12px;padding:20px;text-align:center">
+              <i class="fas fa-file-pdf" style="font-size:32px;color:var(--orange);display:block;margin-bottom:10px"></i>
+              <div style="font-weight:700;margin-bottom:6px">Report metodologico PDF</div>
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:14px">Documentazione del processo</div>
+              <button class="btn" style="background:var(--orange);color:white;width:100%"
+                onclick="downloadReport()">
+                <i class="fas fa-download"></i> Scarica PDF
+              </button>
+            </div>
+
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px">
+            <i class="fas fa-cloud-upload-alt"></i> Carica direttamente in MATRIX
+          </div>
+          <div class="callout success">
+            <span class="ci">✅</span>
+            <div>Il JSON generato è compatibile con MATRIX Analisi Programmi v1.2.0.
+            Caricalo tramite <strong>Gestione Dati → Nuovo Framework</strong>
+            oppure aggiungilo al repository nella cartella <code>frameworks/</code>.</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn btn-primary" onclick="copyJsonClipboard()">
+              <i class="fas fa-copy"></i> Copia JSON negli appunti
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: SESSIONI ═══ -->
+    <div class="view" id="sessionsView">
+      <div class="page-header">
+        <h1><i class="fas fa-history" style="color:var(--green)"></i> Sessioni salvate</h1>
+        <p>Riprendi sessioni di lavoro precedenti.</p>
+      </div>
+      <div class="card">
+        <div id="sessionsList">
+          <div style="text-align:center;padding:40px;color:var(--gray-3)">
+            <i class="fas fa-history" style="font-size:32px;display:block;margin-bottom:8px"></i>
+            <p>Nessuna sessione salvata.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ MODAL: IMPOSTAZIONI ═══ -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-cog"></i> Impostazioni</h3>
+      <button class="modal-close" onclick="closeModal('settingsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <h3>🤖 OpenAI API</h3>
+        <div class="form-group">
+          <label>API Key OpenAI</label>
+          <input type="password" id="settingsApiKey" placeholder="sk-...">
+        </div>
+        <div class="form-group">
+          <label>Modello</label>
+          <select id="settingsModel">
+            <option value="gpt-4o-mini">gpt-4o-mini (consigliato — veloce ed economico)</option>
+            <option value="gpt-4o">gpt-4o (più accurato — costo maggiore)</option>
+            <option value="gpt-4-turbo">gpt-4-turbo</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>📊 Soglie di classificazione</h3>
+        <div class="callout info" style="margin-bottom:14px">
+          <span class="ci">ℹ️</span>
+          <div>Le soglie determinano la classificazione degli argomenti. Valori predefiniti calibrati per campioni &gt;50 programmi.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Soglia Universal (%)</label>
+            <input type="number" id="threshUniversal" value="75" min="50" max="95">
+          </div>
+          <div class="form-group">
+            <label>Soglia Profile-dependent (%)</label>
+            <input type="number" id="threshProfile" value="60" min="30" max="80">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Correzione campioni piccoli (&lt;30 programmi)</label>
+          <select id="smallSampleCorrection">
+            <option value="conservative">Conservativa (abbassa soglie del 10%)</option>
+            <option value="none">Nessuna correzione</option>
+            <option value="flag">Solo flag di avviso</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="clearSavedState()" style="margin-right:auto">
+        <i class="fas fa-trash"></i> Cancella sessione
+      </button>
+      <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Annulla</button>
+      <button class="btn btn-primary" onclick="saveSettings()">
+        <i class="fas fa-save"></i> Salva
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: AGGIUNGI/MODIFICA MODULO ═══ -->
+<div class="modal-overlay" id="addModuleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus"></i> Aggiungi / Modifica Modulo</h3>
+      <button class="modal-close" onclick="closeModal('addModuleModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editModuleIdx" value="-1">
+      <div class="form-group">
+        <label>Nome Modulo</label>
+        <input type="text" id="moduleName" placeholder="es. Percezione e Attenzione">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="moduleType">
+          <option value="universal">Universal (&gt;75% tutti i CdL)</option>
+          <option value="profile_dependent">Profile-dependent (&gt;60% su almeno un CdL)</option>
+          <option value="discretionary">Discretionary (&lt;60% tutti i CdL)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Argomenti principali (uno per riga)</label>
+        <textarea id="moduleContents" rows="5"
+          placeholder="Teoria della Gestalt&#10;Processi bottom-up e top-down&#10;Attenzione selettiva e divisa"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Concetti chiave (uno per riga)</label>
+        <textarea id="moduleKeywords" rows="3"
+          placeholder="Percezione&#10;Attenzione&#10;Gestalt"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addModuleModal')">Annulla</button>
+      <button class="btn btn-primary" onclick="saveModule()">
+        <i class="fas fa-save"></i> Salva modulo
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"
+  style="position:fixed;bottom:24px;right:24px;background:#1e1e2e;color:white;
+         padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;
+         display:none;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:320px">
+</div>
+<script>
+// ════════════════════════════════════════════════════════════════
+//  STATO GLOBALE
+// ════════════════════════════════════════════════════════════════
+const STATE = {
+  apiKey: '',
+  model: 'gpt-4o-mini',
+  threshUniversal: 75,
+  threshProfile: 60,
+  smallSampleCorrection: 'conservative',
+  selectedMateria: '',
+  selectedCdl: '',
+  files: [],
+  allArgs: {},
+  sampleCounts: {},
+  framework: null,
+  sessions: []
+};
+
+const MATERIE = [
+  { id:'psicologia_generale',    name:'Psicologia Generale',    icon:'🧠', ssd:'M-PSI/01' },
+  { id:'psicologia_clinica',     name:'Psicologia Clinica',     icon:'🩺', ssd:'M-PSI/08' },
+  { id:'psicologia_sviluppo',    name:'Psic. dello Sviluppo',   icon:'🌱', ssd:'M-PSI/04' },
+  { id:'psicologia_sociale',     name:'Psicologia Sociale',     icon:'👥', ssd:'M-PSI/05' },
+  { id:'psicometria',            name:'Psicometria',            icon:'📊', ssd:'M-PSI/03' },
+  { id:'antropologia_culturale', name:'Antropologia Culturale', icon:'🌍', ssd:'M-DEA/01' },
+  { id:'sociologia_generale',    name:'Sociologia Generale',    icon:'🏛️', ssd:'SPS/07'   },
+  { id:'custom',                 name:'Altra materia...',       icon:'➕', ssd:''         }
+];
+
+const CDL_LIST = [
+  { id:'L-24',          label:'L-24 Scienze e Tecniche Psicologiche' },
+  { id:'L-19/LM-85bis', label:'L-19 / LM-85bis Scienze Educazione e Form. Primaria' },
+  { id:'ALTRO',         label:'Altra classe di laurea' }
+];
+
+const CANDIDATI = {
+  psicologia_generale: [
+    'Metodi di ricerca in psicologia','Percezione visiva','Percezione uditiva e spaziale',
+    'Attenzione selettiva','Attenzione divisa e risorse cognitive','Memoria sensoriale',
+    'Memoria di lavoro','Memoria a lungo termine','Apprendimento classico e operante',
+    'Apprendimento cognitivo','Linguaggio e cognizione','Pensiero e ragionamento',
+    'Problem solving e creatività','Emozioni e processi affettivi','Motivazione',
+    'Coscienza e stati alterati','Basi biologiche del comportamento','Sviluppo del ciclo di vita',
+    'Personalità e differenze individuali','Psicologia sociale di base',
+    'Psicopatologia introduttiva','Metodi statistici di base','Storia della psicologia',
+    'Neuroscienze cognitive'
+  ],
+  psicologia_clinica: [
+    'Fondamenti della psicologia clinica',
+    'Modelli teorici (psicodinamico, cognitivo-comportamentale, sistemico)',
+    'Colloquio clinico e assessment','Diagnosi psicopatologica (DSM/ICD)',
+    'Disturbi d\'ansia','Disturbi dell\'umore','Disturbi di personalità',
+    'Psicosi e disturbi dello spettro schizofrenico','Disturbi alimentari',
+    'Dipendenze e addiction','Trauma e PTSD','Tecniche psicoterapeutiche',
+    'Psicologia della salute','Psicologia ospedaliera e delle cure palliative',
+    'Psicologia di comunità','Psicofarmacologia di base','Etica e deontologia',
+    'Neuropsicologia clinica','Psicologia forense','Psicologia dell\'emergenza'
+  ],
+  psicologia_sviluppo: [
+    'Teorie dello sviluppo (Piaget, Vygotskij, Bowlby)','Sviluppo prenatale e neonatale',
+    'Sviluppo cognitivo nella prima infanzia','Sviluppo del linguaggio',
+    'Sviluppo emotivo e affettivo','Attaccamento e relazioni precoci',
+    'Sviluppo nella scuola primaria','Sviluppo nell\'adolescenza',
+    'Sviluppo nell\'età adulta','Invecchiamento e gerontologia',
+    'Sviluppo morale','Sviluppo sociale e prosociale',
+    'Differenze individuali nello sviluppo','Disabilità e sviluppo atipico',
+    'Neuroscienze dello sviluppo','Metodi di ricerca nello sviluppo',
+    'Psicologia dell\'educazione','Contesti familiari e sviluppo',
+    'Tecnologie digitali e sviluppo','Resilienza e fattori di protezione'
+  ],
+  psicologia_sociale: [
+    'Fondamenti della psicologia sociale','Cognizione sociale',
+    'Percezione sociale e formazione impressioni',
+    'Atteggiamenti e cambiamento attitudinale','Persuasione e comunicazione',
+    'Pregiudizio e discriminazione','Identità sociale e categorizzazione',
+    'Processi di gruppo','Leadership e potere sociale',
+    'Conformismo e influenza sociale','Comportamento prosociale e altruismo',
+    'Aggressività e violenza','Relazioni interpersonali e attrazione',
+    'Psicologia delle organizzazioni','Influenza minoritaria',
+    'Psicologia culturale e cross-culturale','Psicologia ambientale',
+    'Metodi di ricerca in psicologia sociale','Comunicazione non verbale',
+    'Psicologia politica e dei media'
+  ],
+  psicometria: [
+    'Teoria classica dei test (TCT)','Teoria della risposta all\'item (IRT)',
+    'Attendibilità e validità','Standardizzazione e norme',
+    'Scale di misura','Analisi fattoriale esplorativa',
+    'Analisi fattoriale confermativa','Regressione lineare e multipla',
+    'Statistica descrittiva','Statistica inferenziale',
+    'Test parametrici e non parametrici','Correlazione e covarianza',
+    'ANOVA e disegni sperimentali','Costruzione e validazione di test',
+    'Test proiettivi e loro critica','Test di intelligenza e abilità cognitive',
+    'Test di personalità','Assessment neuropsicologico',
+    'Bias e fairness nei test','Software statistico (SPSS/R)'
+  ],
+  antropologia_culturale: [
+    'Storia dell\'antropologia e correnti teoriche','Metodo etnografico',
+    'Cultura e simbolismo','Parentela e organizzazione sociale',
+    'Religione e rituale','Mito e cosmologia',
+    'Economia e scambio','Politica e potere',
+    'Genere e sessualità','Corpo e persona',
+    'Identità etnica e nazionale','Globalizzazione e ibridazione culturale',
+    'Antropologia medica','Antropologia visuale',
+    'Decolonialismo e postura critica','Antropologia dell\'educazione',
+    'Migrazioni e diaspora','Oralità e scrittura',
+    'Patrimonio culturale e UNESCO','Antropologia digitale'
+  ],
+  sociologia_generale: [
+    'Fondatori della sociologia (Durkheim, Weber, Marx)',
+    'Teorie sociologiche classiche e contemporanee',
+    'Struttura sociale e stratificazione',
+    'Istituzioni sociali (famiglia, scuola, religione)',
+    'Devianza e controllo sociale','Socializzazione e identità',
+    'Classe sociale e mobilità','Genere e disuguaglianze',
+    'Razza ed etnicità','Organizzazioni e burocrazia',
+    'Movimento sociale e cambiamento',
+    'Sociologia della comunicazione e media',
+    'Sociologia dell\'educazione','Sociologia della salute',
+    'Globalizzazione e società mondiale',
+    'Metodologia della ricerca sociologica',
+    'Sociologia urbana','Sociologia del lavoro',
+    'Welfare state e politiche sociali','Sociologia della religione'
+  ]
+};
+
+// ════════════════════════════════════════════════════════════════
+//  INIT — separato da loadSettings() per evitare dipendenze DOM
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadPersistedSettings();   // solo localStorage → STATE, zero DOM
+  renderMateriaGrid();
+  renderCdlRow();
+  setupDropZone();
+  setupModalTriggers();
+  renderSessions();
+  restoreStateFromStorage(); // DOM pronto: ora possiamo toccare la UI
+});
+
+// ── Carica SOLO le impostazioni (no DOM) ──
+function loadPersistedSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('mfb_settings') || '{}');
+    if (s.apiKey)                STATE.apiKey                = s.apiKey;
+    if (s.model)                 STATE.model                 = s.model;
+    if (s.threshUniversal)       STATE.threshUniversal       = +s.threshUniversal;
+    if (s.threshProfile)         STATE.threshProfile         = +s.threshProfile;
+    if (s.smallSampleCorrection) STATE.smallSampleCorrection = s.smallSampleCorrection;
+    STATE.sessions = JSON.parse(localStorage.getItem('mfb_sessions') || '[]');
+  } catch(e) {
+    console.warn('loadPersistedSettings error:', e);
+  }
+}
+
+// ── Ripristina STATE completo DOPO che il DOM è pronto ──
+function restoreStateFromStorage() {
+  try {
+    const raw = localStorage.getItem('mfb_state');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+
+    if (parsed.allArgs      && Object.keys(parsed.allArgs).length)
+      STATE.allArgs      = parsed.allArgs;
+    if (parsed.sampleCounts && Object.keys(parsed.sampleCounts).length)
+      STATE.sampleCounts = parsed.sampleCounts;
+    if (parsed.selectedMateria) STATE.selectedMateria = parsed.selectedMateria;
+    if (parsed.selectedCdl)     STATE.selectedCdl     = parsed.selectedCdl;
+
+    // Ricrea file fittizi per i filtri
+    if (parsed.allArgs) {
+      Object.keys(parsed.allArgs).forEach(materia => {
+        Object.keys(parsed.allArgs[materia]).forEach(cdl => {
+          if (!STATE.files.find(f => f.materia===materia && f.cdl===cdl)) {
+            STATE.files.push({
+              name:'_restored_'+materia+'_'+cdl,
+              size:0, status:'done',
+              cdl, materia, file:null, text:'', args:[]
+            });
+          }
+        });
+      });
+      updateFreqFilters();
+      updateUploadStats();
+      document.getElementById('uploadStats').style.display = 'grid';
+      document.getElementById('countUpload').textContent   =
+        STATE.files.filter(f=>f.status==='done').length;
+      document.getElementById('countReview').textContent   =
+        STATE.files.filter(f=>f.status==='done').length;
+    }
+
+    // Ripristina framework se presente
+    if (parsed.framework) {
+      STATE.framework = parsed.framework;
+      document.getElementById('exportContent').style.display = 'block';
+      document.getElementById('exportEmpty').style.display   = 'none';
+      // renderBuilder() usa i campi HTML → richiamare solo quando
+      // l'utente naviga al Builder, non subito
+    }
+
+    if (Object.keys(STATE.allArgs).length) {
+      showToast('✅ Sessione precedente ripristinata');
+    }
+  } catch(e) {
+    console.warn('restoreStateFromStorage error:', e);
+    localStorage.removeItem('mfb_state');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  AUTO-SAVE  — C1 FIX: nessuna lettura di campi HTML opzionali
+//  Legge i campi solo se il Builder è visibile (display!=none)
+// ════════════════════════════════════════════════════════════════
+function autoSaveState() {
+  try {
+    // Sincronizza campi Builder → STATE solo se il Builder è montato
+    if (STATE.framework) {
+      const builderVisible =
+        document.getElementById('builderContent').style.display !== 'none';
+      if (builderVisible) {
+        const v = id => document.getElementById(id)?.value?.trim() || '';
+        STATE.framework.id               = v('fwId')               || STATE.framework.id;
+        STATE.framework.name             = v('fwName')             || STATE.framework.name;
+        STATE.framework.subject          = v('fwSubject')          || STATE.framework.subject;
+        STATE.framework.context_strategy = v('fwContextStrategy');
+      }
+    }
+    const toSave = {
+      allArgs:         STATE.allArgs,
+      sampleCounts:    STATE.sampleCounts,
+      framework:       STATE.framework,
+      selectedMateria: STATE.selectedMateria,
+      selectedCdl:     STATE.selectedCdl
+    };
+    localStorage.setItem('mfb_state', JSON.stringify(toSave));
+  } catch(e) {
+    console.warn('autoSaveState error:', e);
+  }
+}
+
+function clearSavedState() {
+  localStorage.removeItem('mfb_state');
+  showToast('🗑️ Sessione cancellata');
+  setTimeout(() => location.reload(), 800);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════════════════════════════
+function setupModalTriggers() {
+  document.getElementById('btnOpenSettings').addEventListener('click', () => {
+    document.getElementById('settingsApiKey').value        = STATE.apiKey;
+    document.getElementById('settingsModel').value         = STATE.model;
+    document.getElementById('threshUniversal').value       = STATE.threshUniversal;
+    document.getElementById('threshProfile').value         = STATE.threshProfile;
+    document.getElementById('smallSampleCorrection').value = STATE.smallSampleCorrection;
+    openModal('settingsModal');
+  });
+  document.getElementById('settingsModal').addEventListener('click', function(e){
+    if (e.target===this) closeModal('settingsModal');
+  });
+  document.getElementById('addModuleModal').addEventListener('click', function(e){
+    if (e.target===this) closeModal('addModuleModal');
+  });
+}
+
+function saveSettings() {
+  STATE.apiKey                = document.getElementById('settingsApiKey').value.trim();
+  STATE.model                 = document.getElementById('settingsModel').value;
+  STATE.threshUniversal       = +document.getElementById('threshUniversal').value;
+  STATE.threshProfile         = +document.getElementById('threshProfile').value;
+  STATE.smallSampleCorrection = document.getElementById('smallSampleCorrection').value;
+  localStorage.setItem('mfb_settings', JSON.stringify({
+    apiKey: STATE.apiKey, model: STATE.model,
+    threshUniversal: STATE.threshUniversal,
+    threshProfile:   STATE.threshProfile,
+    smallSampleCorrection: STATE.smallSampleCorrection
+  }));
+  closeModal('settingsModal');
+  showToast('✅ Impostazioni salvate');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  NAVIGAZIONE
+// ════════════════════════════════════════════════════════════════
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const map = {
+    uploadView:0, reviewView:1, frequencyView:2,
+    builderView:3, exportView:4, sessionsView:5
+  };
+  document.querySelectorAll('.nav-item')[map[id] ?? 5]?.classList.add('active');
+
+  // Quando si apre il Builder, renderizza se c'è un framework in STATE
+  if (id === 'builderView' && STATE.framework) {
+    renderBuilder();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MATERIA & CdL
+// ════════════════════════════════════════════════════════════════
+function renderMateriaGrid() {
+  document.getElementById('materiaGrid').innerHTML = MATERIE.map(m => `
+    <div class="materia-chip" onclick="selectMateria('${m.id}')" id="chip-${m.id}">
+      <span class="chip-icon">${m.icon}</span>
+      ${m.name}
+      ${m.ssd
+        ? `<br><span style="font-size:10px;color:var(--gray-3);font-weight:400">${m.ssd}</span>`
+        : ''}
+    </div>
+  `).join('');
+}
+
+function renderCdlRow() {
+  document.getElementById('cdlRow').innerHTML = CDL_LIST.map(c => `
+    <div class="cdl-btn" onclick="selectCdl('${c.id}')"
+      id="cdl-${c.id.replace(/\//g,'_')}">
+      ${c.label}
+    </div>
+  `).join('');
+}
+
+function selectMateria(id) {
+  STATE.selectedMateria = id;
+  document.querySelectorAll('.materia-chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('chip-'+id)?.classList.add('selected');
+  document.getElementById('cdlCard').style.display    = 'block';
+  document.getElementById('uploadCard').style.display = 'none';
+}
+
+function selectCdl(cdl) {
+  STATE.selectedCdl = cdl;
+  document.querySelectorAll('.cdl-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('cdl-'+cdl.replace(/\//g,'_'))?.classList.add('selected');
+  document.getElementById('uploadCard').style.display = 'block';
+  updateBtnProcess();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  UPLOAD & DROP ZONE
+// ════════════════════════════════════════════════════════════════
+function setupDropZone() {
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+}
+
+function handleFiles(fileList) {
+  if (!STATE.selectedMateria || !STATE.selectedCdl) {
+    showToast('⚠️ Seleziona prima materia e CdL','warning'); return;
+  }
+  Array.from(fileList).filter(f => f.name.endsWith('.pdf')).forEach(f => {
+    if (STATE.files.find(x => x.name===f.name && x.cdl===STATE.selectedCdl)) return;
+    STATE.files.push({
+      name:f.name, size:f.size, status:'pending',
+      cdl:STATE.selectedCdl, materia:STATE.selectedMateria,
+      file:f, text:'', args:[]
+    });
+  });
+  renderFileList();
+  updateBtnProcess();
+  updateUploadStats();
+  document.getElementById('uploadStats').style.display = 'grid';
+}
+
+function renderFileList() {
+  const list = document.getElementById('fileList');
+  const relevant = STATE.files.filter(f =>
+  f.materia===STATE.selectedMateria
+);
+  if (!relevant.length) { list.innerHTML=''; return; }
+  list.innerHTML = relevant.map(f => {
+    const icon =
+      f.status==='pending'    ? '📄'
+      : f.status==='processing' ? '⏳'
+      : f.status==='done'       ? '✅' : '❌';
+    const statusLabel =
+      f.status==='pending'    ? 'In attesa'
+      : f.status==='processing' ? 'Elaborazione...'
+      : f.status==='done'       ? 'Completato' : 'Errore';
+    const safeName = f.name.replace(/'/g,"\\'");
+    const safeCdl  = f.cdl.replace(/'/g,"\\'");
+    return `
+    <div class="file-item ${f.status}">
+      <div class="file-icon">${icon}</div>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">
+          ${(f.size/1024).toFixed(0)} KB ·
+          <span class="badge badge-blue">${f.cdl}</span> ·
+          ${MATERIE.find(m=>m.id===f.materia)?.name||f.materia}
+          ${f.args.length ? ` · <strong>${f.args.length} argomenti</strong>` : ''}
+        </div>
+      </div>
+      <div class="file-status ${f.status}">${statusLabel}</div>
+      <div class="file-actions">
+        ${f.status==='error'
+          ? `<button class="btn btn-secondary btn-sm"
+               onclick="retryFile('${safeName}','${safeCdl}')">
+               <i class="fas fa-redo"></i></button>`
+          : ''}
+        <button class="btn btn-danger btn-sm"
+          onclick="removeFile('${safeName}','${safeCdl}')">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('countUpload').textContent = STATE.files.length;
+}
+
+function removeFile(name, cdl) {
+  STATE.files = STATE.files.filter(f => !(f.name===name && f.cdl===cdl));
+  renderFileList(); updateUploadStats(); updateBtnProcess();
+}
+
+function clearFiles() {
+  STATE.files = STATE.files.filter(f =>
+    !(f.materia===STATE.selectedMateria && f.cdl===STATE.selectedCdl)
+  );
+  renderFileList(); updateUploadStats(); updateBtnProcess();
+}
+
+function retryFile(name, cdl) {
+  const f = STATE.files.find(x => x.name===name && x.cdl===cdl);
+  if (f) { f.status='pending'; f.args=[]; renderFileList(); }
+}
+
+function updateBtnProcess() {
+  const pending = STATE.files.filter(f =>
+  f.status==='pending' &&
+  f.materia===STATE.selectedMateria
+);
+  document.getElementById('btnProcess').disabled =
+    !pending.length || !STATE.selectedMateria || !STATE.selectedCdl;
+}
+
+function updateUploadStats() {
+  const all = STATE.files;
+  document.getElementById('statTotal').textContent  = all.length;
+  document.getElementById('statDone').textContent   = all.filter(f=>f.status==='done').length;
+  document.getElementById('statArgs').textContent   = all.reduce((s,f)=>s+f.args.length,0);
+  document.getElementById('statErrors').textContent = all.filter(f=>f.status==='error').length;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  ELABORAZIONE AI
+// ════════════════════════════════════════════════════════════════
+async function startProcessing() {
+  if (!STATE.apiKey) {
+    showToast('⚠️ Inserisci la chiave API nelle impostazioni','warning');
+    document.getElementById('btnOpenSettings').click(); return;
+  }
+  const pending = STATE.files.filter(f =>
+  f.status==='pending' &&
+  f.materia===STATE.selectedMateria
+);
+  if (!pending.length) return;
+
+  document.getElementById('processingProgress').style.display = 'block';
+  document.getElementById('btnProcess').disabled = true;
+
+  for (let i=0; i<pending.length; i++) {
+    const f = pending[i];
+    f.status = 'processing';
+    renderFileList();
+    updateProgress(i, pending.length, `Elaborazione: ${f.name}`);
+    try {
+      f.text = await extractTextFromPdf(f.file);
+      f.args = await extractArgsWithAI(f.text, f.materia, f.cdl);
+      f.status = 'done';
+      aggregateArgs(f);
+    } catch(e) {
+      f.status = 'error';
+      console.error('Errore su', f.name, e);
+    }
+    renderFileList();
+    updateUploadStats();
+  }
+
+  updateProgress(pending.length, pending.length, 'Elaborazione completata!');
+  document.getElementById('countReview').textContent =
+    STATE.files.filter(f=>f.status==='done').length;
+  showToast(`✅ Elaborati ${pending.filter(f=>f.status==='done').length} PDF`);
+  updateFreqFilters();
+  autoSaveState();
+  saveSession();
+}
+
+function updateProgress(done, total, label) {
+  const pct = total>0 ? Math.round((done/total)*100) : 0;
+  document.getElementById('progressLabel').textContent     = label;
+  document.getElementById('progressPct').textContent       = pct+'%';
+  document.getElementById('mainProgressFill').style.width  = pct+'%';
+}
+
+async function extractTextFromPdf(file) {
+  const buf  = await file.arrayBuffer();
+  const pdf  = await pdfjsLib.getDocument({data:buf}).promise;
+  let text   = '';
+  for (let p=1; p<=Math.min(pdf.numPages,12); p++) {
+    const page    = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    text += content.items.map(i=>i.str).join(' ') + '\n';
+  }
+  return text.trim().substring(0,6000);
+}
+
+async function extractArgsWithAI(text, materiaId, cdl) {
+  const materia   = MATERIE.find(m=>m.id===materiaId);
+  const candidati = CANDIDATI[materiaId] || [];
+  const ssd       = materia?.ssd || '';
+
+  const systemPrompt =
+    `Sei un esperto di didattica universitaria italiana specializzato nell'analisi di programmi di insegnamento.
+Identifica gli argomenti disciplinari trattati, riconductoli alle categorie normalizzate fornite.
+Usa ESATTAMENTE il nome della categoria se l'argomento corrisponde.
+Non inserire mai lo stesso argomento due volte.
+Rispondi SOLO con un array JSON di stringhe, senza spiegazioni.`;
+
+  const userPrompt =
+    `Analizza questo programma universitario di ${materia?.name||materiaId} (SSD: ${ssd}, CdL: ${cdl}).
+
+CATEGORIE NORMALIZZATE:
+${candidati.map((c,i)=>`${i+1}. ${c}`).join('\n')}
+
+TESTO DEL PROGRAMMA:
+${text}
+
+Restituisci SOLO l'array JSON degli argomenti trovati. Ogni argomento UNA SOLA VOLTA.`;
+
+  const resp = await fetch('https://api.openai.com/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+STATE.apiKey},
+    body: JSON.stringify({
+      model: STATE.model,
+      messages:[
+        {role:'system',content:systemPrompt},
+        {role:'user',  content:userPrompt}
+      ],
+      temperature:0.1, max_tokens:800
+    })
+  });
+  if (!resp.ok) throw new Error('API error: '+resp.status);
+  const data = await resp.json();
+  const raw  = data.choices[0].message.content.trim();
+  let parsed = [];
+  try {
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (match) parsed = JSON.parse(match[0]);
+  } catch(e) {
+    parsed = raw.split('\n').map(l=>l.replace(/^[-*\d.]\s*/,'').trim()).filter(Boolean);
+  }
+  return [...new Set(parsed.map(a=>a.trim()).filter(Boolean))];
+}
+
+function aggregateArgs(f) {
+  if (!STATE.allArgs[f.materia])              STATE.allArgs[f.materia]              = {};
+  if (!STATE.allArgs[f.materia][f.cdl])       STATE.allArgs[f.materia][f.cdl]       = {};
+  if (!STATE.sampleCounts[f.materia])         STATE.sampleCounts[f.materia]         = {};
+  if (!STATE.sampleCounts[f.materia][f.cdl])  STATE.sampleCounts[f.materia][f.cdl]  = 0;
+  STATE.sampleCounts[f.materia][f.cdl]++;
+  const unique = [...new Set(f.args.map(a=>a.trim()).filter(Boolean))];
+  unique.forEach(arg => {
+    if (!STATE.allArgs[f.materia][f.cdl][arg])
+      STATE.allArgs[f.materia][f.cdl][arg] = 0;
+    STATE.allArgs[f.materia][f.cdl][arg]++;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  REVISIONE
+// ════════════════════════════════════════════════════════════════
+function updateFreqFilters() {
+  const materie = [...new Set(
+    STATE.files.filter(f=>f.status==='done').map(f=>f.materia)
+  )];
+  const opts = materie.map(m => {
+    const info = MATERIE.find(x=>x.id===m);
+    return `<option value="${m}">${info?.icon||''} ${info?.name||m}</option>`;
+  }).join('');
+
+  // Filtro materia nella view frequenze
+  document.getElementById('freqMateriaFilter').innerHTML =
+    '<option value="">Seleziona materia...</option>' + opts;
+
+  // Filtro materia nella view revisione
+  document.getElementById('reviewMateriaFilter').innerHTML =
+    '<option value="">Tutte le materie</option>' + opts;
+
+  // ── FIX: popola il filtro CdL con TUTTI i CdL presenti nei file elaborati ──
+  const cdls = [...new Set(
+    STATE.files.filter(f=>f.status==='done').map(f=>f.cdl)
+  )];
+  const cdlOpts = cdls.map(c =>
+    `<option value="${c}">${c}</option>`
+  ).join('');
+  document.getElementById('reviewCdlFilter').innerHTML =
+    '<option value="">Tutti i CdL</option>' + cdlOpts;
+}
+
+function renderReviewList() {
+  const matFilter = document.getElementById('reviewMateriaFilter').value;
+  const cdlFilter = document.getElementById('reviewCdlFilter').value;
+  const files = STATE.files.filter(f =>
+    f.status==='done' &&
+    (!matFilter || f.materia===matFilter) &&
+    (!cdlFilter || f.cdl===cdlFilter)
+  );
+  const list = document.getElementById('reviewList');
+  if (!files.length) {
+    list.innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-3)">Nessun file elaborato corrisponde ai filtri.</div>';
+    return;
+  }
+  list.innerHTML = files.map((f,fi) => `
+    <div class="review-item">
+      <div class="review-item-header">
+        <div class="review-item-title">📄 ${f.name}</div>
+        <div style="display:flex;gap:6px">
+          <span class="badge badge-blue">${f.cdl}</span>
+          <span class="badge badge-green">${f.args.length} argomenti</span>
+        </div>
+      </div>
+      <div class="review-args" id="args-${fi}">
+        ${f.args.map((a,i)=>`
+          <span class="arg-chip confirmed"
+            onclick="removeArg('${f.name.replace(/'/g,"\\'")}','${f.cdl.replace(/'/g,"\\'")}',${i})"
+            title="Clicca per rimuovere">${a} ✕</span>
+        `).join('')}
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <input type="text" id="newarg-${fi}"
+          placeholder="Aggiungi argomento manualmente..."
+          style="flex:1;font-size:12px;padding:6px 10px"
+          onkeydown="if(event.key==='Enter') addArg('${f.name.replace(/'/g,"\\'")}','${f.cdl.replace(/'/g,"\\'")}',${fi})">
+        <button class="btn btn-secondary btn-sm"
+          onclick="addArg('${f.name.replace(/'/g,"\\'")}','${f.cdl.replace(/'/g,"\\'")}',${fi})">
+          <i class="fas fa-plus"></i> Aggiungi
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeArg(fname, cdl, idx) {
+  const f = STATE.files.find(x=>x.name===fname && x.cdl===cdl);
+  if (!f) return;
+  f.args.splice(idx,1);
+  rebuildAggregation();
+  renderReviewList();
+}
+
+function addArg(fname, cdl, fi) {
+  const f   = STATE.files.find(x=>x.name===fname && x.cdl===cdl);
+  const inp = document.getElementById('newarg-'+fi);
+  if (!f||!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  if (f.args.includes(val)) { showToast('⚠️ Argomento già presente','warning'); return; }
+  f.args.push(val);
+  inp.value='';
+  rebuildAggregation();
+  renderReviewList();
+}
+
+function rebuildAggregation() {
+  STATE.allArgs={};
+  STATE.sampleCounts={};
+  STATE.files.filter(f=>f.status==='done').forEach(f=>aggregateArgs(f));
+}
+
+function proceedToFrequency() {
+  rebuildAggregation();
+  updateFreqFilters();
+  showView('frequencyView');
+  showToast('✅ Passato all\'analisi delle frequenze');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FREQUENZE
+// ════════════════════════════════════════════════════════════════
+function getThresholds(cdls, counts) {
+  const minN = Math.min(...cdls.map(c=>counts[c]||0));
+  const corr = (STATE.smallSampleCorrection==='conservative' && minN<30) ? 10 : 0;
+  return { u: STATE.threshUniversal-corr, p: STATE.threshProfile-corr };
+}
+
+function getArgType(arg, freqsByCdl, cdls, counts) {
+  const thresh = getThresholds(cdls, counts);
+  const vals   = cdls.map(c=>freqsByCdl[c]||0);
+  if (vals.every(v=>v>=thresh.u)) return 'universal';
+  if (vals.some(v=>v>=thresh.p))  return 'profile_dependent';
+  return 'discretionary';
+}
+
+function renderFrequencyTable() {
+  const materia = document.getElementById('freqMateriaFilter').value;
+  if (!materia) return;
+  const wrapper = document.getElementById('freqTableWrapper');
+  const cdlData = STATE.allArgs[materia]      || {};
+  const counts  = STATE.sampleCounts[materia] || {};
+  const cdls    = Object.keys(cdlData);
+  if (!cdls.length) {
+    wrapper.innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-3)">Nessun dato per questa materia.</div>';
+    return;
+  }
+  const allArgSet = new Set();
+  cdls.forEach(cdl=>Object.keys(cdlData[cdl]).forEach(a=>allArgSet.add(a)));
+  const args   = [...allArgSet].sort();
+  const thresh = getThresholds(cdls, counts);
+
+  const thead = `<tr>
+    <th>Argomento</th><th>Tipo</th>
+    ${cdls.map(c=>`<th>${c}<br><span style="font-weight:400;font-size:11px">n=${counts[c]||0}</span></th>`).join('')}
+  </tr>`;
+
+  const tbody = args.map(arg => {
+    const freqsByCdl = Object.fromEntries(
+      cdls.map(cdl => {
+        const n   = counts[cdl]||1;
+        const cnt = cdlData[cdl][arg]||0;
+        return [cdl, Math.round((cnt/n)*100)];
+      })
+    );
+    const type = getArgType(arg, freqsByCdl, cdls, counts);
+    const typeLabel =
+      type==='universal'
+        ? '<span class="badge badge-green">Universal</span>'
+        : type==='profile_dependent'
+        ? '<span class="badge badge-orange">Profile</span>'
+        : '<span class="badge badge-gray">Discrezionale</span>';
+    const cells = cdls.map(cdl => {
+      const n   = counts[cdl]||1;
+      const cnt = cdlData[cdl][arg]||0;
+      const pct = Math.round((cnt/n)*100);
+      const bc  = pct>=thresh.u?'var(--green)':pct>=thresh.p?'var(--orange)':'var(--gray-3)';
+      return `<td><div class="freq-cell">
+        <span class="freq-pct">${pct}%</span>
+        <div style="flex:1;height:8px;border-radius:4px;background:var(--gray-2)">
+          <div style="width:${Math.max(pct,2)}%;height:100%;border-radius:4px;background:${bc}"></div>
+        </div>
+        <span style="font-size:11px;color:var(--gray-3)">${cnt}/${n}</span>
+      </div></td>`;
+    }).join('');
+    return `<tr><td><strong>${arg}</strong></td><td>${typeLabel}</td>${cells}</tr>`;
+  }).join('');
+
+  wrapper.innerHTML =
+    `<table class="freq-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+
+  const minN     = Math.min(...cdls.map(c=>counts[c]||0));
+  const confCard = document.getElementById('confidenceCard');
+  const confInfo = document.getElementById('confidenceInfo');
+  confCard.style.display = 'block';
+  if (minN<30) {
+    confInfo.innerHTML=`<div class="callout warning"><span class="ci">⚠️</span>
+      <div>Campione più piccolo: <strong>${minN} programmi</strong>. Soglie abbassate del 10%. Interpretare con cautela.</div></div>`;
+  } else if (minN<50) {
+    confInfo.innerHTML=`<div class="callout info"><span class="ci">ℹ️</span>
+      <div>Campione più piccolo: <strong>${minN} programmi</strong>. Affidabilità <strong>sufficiente</strong>.</div></div>`;
+  } else {
+    confInfo.innerHTML=`<div class="callout success"><span class="ci">✅</span>
+      <div>Campione <strong>solido</strong> (min ${minN} programmi). Frequenze ad alta affidabilità.</div></div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FRAMEWORK BUILDER
+// ════════════════════════════════════════════════════════════════
+function buildFramework() {
+  const materia = document.getElementById('freqMateriaFilter').value;
+  if (!materia) { showToast('⚠️ Seleziona prima una materia','warning'); return; }
+  const cdlData = STATE.allArgs[materia]      || {};
+  const counts  = STATE.sampleCounts[materia] || {};
+  const cdls    = Object.keys(cdlData);
+  const info    = MATERIE.find(m=>m.id===materia);
+  if (!cdls.length) { showToast('⚠️ Nessun dato di frequenza disponibile','warning'); return; }
+
+  const allArgSet = new Set();
+  cdls.forEach(cdl=>Object.keys(cdlData[cdl]).forEach(a=>allArgSet.add(a)));
+
+  const modulesData = [...allArgSet].map(arg => {
+    const freqsByCdl = Object.fromEntries(
+      cdls.map(cdl => {
+        const n=counts[cdl]||1, cnt=cdlData[cdl][arg]||0;
+        return [cdl, Math.round((cnt/n)*100)];
+      })
+    );
+    const type = getArgType(arg, freqsByCdl, cdls, counts);
+    return {
+      name: arg,
+      coverage_type: type,
+      core_contents: [arg+' — completare con argomenti specifici del modulo'],
+      key_concepts:  [arg],
+      _freqs: freqsByCdl
+    };
+  });
+
+  const order = {universal:0, profile_dependent:1, discretionary:2};
+  modulesData.sort((a,b)=>order[a.coverage_type]-order[b.coverage_type]);
+
+  const cdlNames = {
+    'L-24':          'L-24 Scienze e Tecniche Psicologiche',
+    'L-19/LM-85bis': 'L-19/LM-85bis Scienze dell\'Educazione e della Formazione Primaria',
+    'ALTRO':         'Altra classe di laurea'
+  };
+
+  const programProfiles = cdls.map(cdl => {
+    const n          = counts[cdl]||0;
+    const priModules = modulesData
+      .filter(m=>m.coverage_type==='universal'||(m._freqs[cdl]||0)>=STATE.threshProfile)
+      .map(m=>m.name);
+    const secModules = modulesData
+      .filter(m=>m.coverage_type==='profile_dependent'
+        &&(m._freqs[cdl]||0)>=30&&(m._freqs[cdl]||0)<STATE.threshProfile)
+      .map(m=>m.name);
+    const priText = priModules.slice(0,4).join(', ')+(priModules.length>4?'...':'');
+    return {
+      name: cdlNames[cdl]||cdl,
+      priority_modules:
+        `[N=${n} programmi analizzati] Focus su: ${priText}. `+
+        (secModules.length?`Secondari: ${secModules.slice(0,3).join(', ')}. `:'')+
+        `— Completare con la logica didattica specifica per ${cdlNames[cdl]||cdl}.`
+    };
+  });
+
+  const evaluationCriteria = {
+    contenuti_core: 'Quali argomenti fondamentali sono presenti/assenti?',
+    approccio_metodologico: 'Approccio teorico/descrittivo vs empirico/applicativo?',
+    orientamento_disciplinare: 'Orientamento prevalente e scuola di pensiero?'
+  };
+
+  STATE.framework = {
+    id:               materia+'_framework',
+    name:             info?.name||materia,
+    subject:          info?.name||materia,
+    context_strategy: '',
+    _meta: { ssd:info?.ssd||'', cdls, counts },
+    content: {
+      target_degrees:      cdls,
+      evaluation_criteria: evaluationCriteria,
+      program_profiles:    programProfiles,
+      syllabus_modules:    modulesData
+    }
+  };
+
+  showView('builderView');  // renderBuilder() chiamato da showView
+  document.getElementById('exportContent').style.display = 'block';
+  document.getElementById('exportEmpty').style.display   = 'none';
+  autoSaveState();
+  showToast('✅ Framework generato! Completa i dettagli nel Builder.');
+}
+
+function renderBuilder() {
+  if (!STATE.framework) return;
+  document.getElementById('builderEmpty').style.display   = 'none';
+  document.getElementById('builderContent').style.display = 'block';
+  const fw = STATE.framework;
+  document.getElementById('fwId').value              = fw.id;
+  document.getElementById('fwName').value            = fw.name;
+  document.getElementById('fwSubject').value         = fw.subject;
+  document.getElementById('fwVersion').value         = '1.0.0';
+  document.getElementById('fwContextStrategy').value = fw.context_strategy||'';
+  renderModulesList();
+  renderEvaluationCriteria();
+  renderProfilesList();
+  refreshJsonPreview();
+}
+
+function renderModulesList() {
+  if (!STATE.framework) return;
+  const modules = STATE.framework.content.syllabus_modules;
+  const cdls    = STATE.framework._meta?.cdls||[];
+  document.getElementById('modulesList').innerHTML = modules.map((m,i)=>{
+    const bc =
+      m.coverage_type==='universal'        ? 'var(--green)'
+      : m.coverage_type==='profile_dependent' ? 'var(--orange)'
+      : 'var(--gray-3)';
+    const freqInfo = cdls.length&&m._freqs
+      ? cdls.map(c=>`<span class="badge badge-gray" style="font-size:10px">${c}: ${m._freqs[c]||0}%</span>`).join(' ')
+      : '';
+    const typeBadge =
+      m.coverage_type==='universal'
+        ? '<span class="badge badge-green">Universal</span>'
+        : m.coverage_type==='profile_dependent'
+        ? '<span class="badge badge-orange">Profile-dependent</span>'
+        : '<span class="badge badge-gray">Discretionary</span>';
+    const contents = Array.isArray(m.core_contents) ? m.core_contents : [m.core_contents||''];
+    return `
+    <div class="module-card ${m.coverage_type==='profile_dependent'?'profile':m.coverage_type==='discretionary'?'discretionary':''}"
+         style="border-left-color:${bc}">
+      <div class="module-header">
+        <div>
+          <div class="module-title">${m.name}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+            ${typeBadge} ${freqInfo}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="editModule(${i})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteModule(${i})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="module-tags">
+        ${contents.map(c=>`<span class="module-tag">📌 ${c}</span>`).join('')}
+      </div>
+      ${m.key_concepts?.length
+        ? `<div style="margin-top:8px;font-size:11px;color:var(--text-2)">🔑 ${m.key_concepts.join(' · ')}</div>`
+        : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderEvaluationCriteria() {
+  if (!STATE.framework) return;
+  const criteria = STATE.framework.content.evaluation_criteria||{};
+  const list = document.getElementById('evaluationCriteriaList');
+  if (!list) return;
+  const entries = Object.entries(criteria);
+  if (!entries.length) {
+    list.innerHTML='<div style="color:var(--gray-3);font-size:13px;padding:8px 0">Nessun criterio. Clicca "Genera con AI" o aggiungi manualmente.</div>';
+    return;
+  }
+  list.innerHTML = entries.map(([key,val],i)=>`
+    <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px">
+      <div style="flex:1">
+        <input type="text" value="${key}"
+          style="width:220px;font-size:12px;font-family:monospace;background:#f8f8f8;margin-bottom:4px"
+          onchange="updateCriterionKey(${i},this.value)"
+          placeholder="chiave_criterio">
+        <textarea rows="2" style="font-size:12px;width:100%"
+          onchange="updateCriterionValue('${key}',this.value)">${val}</textarea>
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-top:24px;flex-shrink:0"
+        onclick="deleteCriterion('${key}')">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
+function updateCriterionKey(idx, newKey) {
+  if (!STATE.framework) return;
+  const entries = Object.entries(STATE.framework.content.evaluation_criteria);
+  if (idx>=entries.length) return;
+  const newC={};
+  entries.forEach(([k,v],i)=>{ newC[i===idx?newKey:k]=v; });
+  STATE.framework.content.evaluation_criteria=newC;
+  refreshJsonPreview();
+}
+function updateCriterionValue(key,val) {
+  if (STATE.framework) STATE.framework.content.evaluation_criteria[key]=val;
+  refreshJsonPreview();
+}
+function deleteCriterion(key) {
+  if (!STATE.framework) return;
+  delete STATE.framework.content.evaluation_criteria[key];
+  renderEvaluationCriteria(); refreshJsonPreview();
+}
+function addEvaluationCriterion() {
+  if (!STATE.framework) return;
+  STATE.framework.content.evaluation_criteria['nuovo_criterio_'+Date.now()]='';
+  renderEvaluationCriteria();
+}
+
+function renderProfilesList() {
+  if (!STATE.framework) return;
+  document.getElementById('profilesList').innerHTML =
+    STATE.framework.content.program_profiles.map((p,i)=>`
+      <div style="background:var(--gray);border-radius:10px;padding:16px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:10px">🎓 ${p.name}</div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Testo narrativo (priority_modules)</label>
+          <textarea rows="4" style="font-size:12px"
+            onchange="updateProfileNarrative(${i},this.value)">${p.priority_modules}</textarea>
+        </div>
+      </div>
+    `).join('');
+}
+function updateProfileNarrative(idx,val) {
+  if (STATE.framework) STATE.framework.content.program_profiles[idx].priority_modules=val;
+}
+
+function editModule(idx) {
+  const m = STATE.framework.content.syllabus_modules[idx];
+  document.getElementById('editModuleIdx').value  = idx;
+  document.getElementById('moduleName').value     = m.name;
+  document.getElementById('moduleType').value     = m.coverage_type;
+  document.getElementById('moduleContents').value =
+    (Array.isArray(m.core_contents)?m.core_contents:[m.core_contents||'']).join('\n');
+  document.getElementById('moduleKeywords').value = (m.key_concepts||[]).join('\n');
+  openModal('addModuleModal');
+}
+function deleteModule(idx) {
+  if (!confirm('Eliminare questo modulo?')) return;
+  STATE.framework.content.syllabus_modules.splice(idx,1);
+  renderModulesList(); refreshJsonPreview();
+}
+function addModule() {
+  document.getElementById('editModuleIdx').value  = -1;
+  document.getElementById('moduleName').value     = '';
+  document.getElementById('moduleType').value     = 'universal';
+  document.getElementById('moduleContents').value = '';
+  document.getElementById('moduleKeywords').value = '';
+  openModal('addModuleModal');
+}
+function saveModule() {
+  const idx  = parseInt(document.getElementById('editModuleIdx').value);
+  const name = document.getElementById('moduleName').value.trim();
+  if (!name) { showToast('⚠️ Il nome del modulo è obbligatorio','warning'); return; }
+  const m = {
+    name,
+    coverage_type: document.getElementById('moduleType').value,
+    core_contents: document.getElementById('moduleContents').value
+      .split('\n').map(l=>l.trim()).filter(Boolean),
+    key_concepts:  document.getElementById('moduleKeywords').value
+      .split('\n').map(l=>l.trim()).filter(Boolean),
+    _freqs:{}
+  };
+  if (idx===-1) STATE.framework.content.syllabus_modules.push(m);
+  else          STATE.framework.content.syllabus_modules[idx]=m;
+  closeModal('addModuleModal');
+  renderModulesList(); refreshJsonPreview(); autoSaveState();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  GENERA CON AI (Fase B)
+// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+async function generateWithAI() {
+  if (!STATE.apiKey) {
+    showToast('Inserisci la chiave API nelle impostazioni', 'warning');
+    openModal('settingsModal'); return;
+  }
+  if (!STATE.framework) {
+    showToast('Genera prima il framework dalla tabella frequenze', 'warning'); return;
+  }
+
+  const btn   = document.getElementById('btnGenerateAI');
+  const label = document.getElementById('aiGeneratingLabel');
+  btn.disabled      = true;
+  label.style.display = 'inline';
+
+  try {
+    const fw      = STATE.framework;
+    const info    = MATERIE.find(function(m){ return m.id === fw.id.replace('_framework',''); });
+    const cdls    = fw._meta ? fw._meta.cdls    : fw.content.target_degrees;
+    const counts  = fw._meta ? fw._meta.counts  : {};
+    const modules = fw.content.syllabus_modules;
+
+    // ── Riepilogo frequenze ──
+    var freqSummary = '';
+    modules.forEach(function(m) {
+      var freqLine = cdls.map(function(c) {
+        return c + ': ' + (m._freqs ? (m._freqs[c] !== undefined ? m._freqs[c] : '?') : '?') + '%';
+      }).join(', ');
+      freqSummary += '- ' + m.name + ' [' + m.coverage_type + '] -> ' + freqLine + '\n';
+    });
+
+    // ── Argomenti discriminanti ──
+    var discriminanti = [];
+    modules.forEach(function(m) {
+      if (m._freqs && cdls.length >= 2) {
+        var vals  = cdls.map(function(c){ return m._freqs[c] || 0; });
+        var delta = Math.max.apply(null, vals) - Math.min.apply(null, vals);
+        discriminanti.push({ name: m.name, delta: delta, vals: vals });
+      }
+    });
+    discriminanti.sort(function(a,b){ return b.delta - a.delta; });
+    discriminanti = discriminanti.slice(0, 6);
+
+    var discText = '';
+    discriminanti.forEach(function(d) {
+      var vstr = cdls.map(function(c,i){ return c + '=' + d.vals[i] + '%'; }).join(', ');
+      discText += '- "' + d.name + '": delta ' + d.delta + '% (' + vstr + ')\n';
+    });
+
+    var cdlSample = '';
+    cdls.forEach(function(c) {
+      cdlSample += '- ' + c + ': ' + (counts[c] || '?') + ' programmi\n';
+    });
+
+    var totale = cdls.reduce(function(s,c){ return s + (counts[c]||0); }, 0);
+
+    // ════════════════════════════════
+    //  STEP 1 — Normalizzazione
+    // ════════════════════════════════
+    showToast('Step 1/2 - Normalizzazione argomenti...', 'warning');
+
+    var argsText = '';
+    modules.forEach(function(m, i) {
+      var freqStr = cdls.map(function(c){
+        return c + ':' + (m._freqs ? (m._freqs[c] || 0) : 0) + '%';
+      }).join(', ');
+      argsText += (i+1) + '. "' + m.name + '" [' + m.coverage_type + '] - ' + freqStr + '\n';
+    });
+
+    var step1System = 'Sei un esperto di didattica universitaria italiana e di analisi curricolare. '
+      + 'Ricevi una lista di argomenti estratti automaticamente da programmi universitari italiani tramite OCR e AI. '
+      + 'La lista contiene inevitabilmente duplicati semantici, varianti terminologiche, argomenti troppo generici o troppo specifici. '
+      + 'Il tuo compito e produrre una lista normalizzata e pulita, pronta per costruire un framework editoriale professionale. '
+      + 'Rispondi SOLO con un oggetto JSON valido, senza markdown, senza spiegazioni.';
+
+    var step1User = 'Materia: ' + fw.name + ' (SSD: ' + (info ? info.ssd : '') + ')\n'
+      + 'Classi di laurea analizzate:\n' + cdlSample + '\n'
+      + 'LISTA ARGOMENTI GREZZI CON FREQUENZE:\n' + argsText + '\n'
+      + 'ISTRUZIONI DI NORMALIZZAZIONE:\n'
+      + '1. Fondi i duplicati semantici in un unico argomento normalizzato\n'
+      + '2. Elimina argomenti con frequenza inferiore al 5% su TUTTI i CdL\n'
+      + '3. Mantieni argomenti con frequenza pari o superiore al 5% su almeno un CdL\n'
+      + '4. Usa nomi in italiano accademico standard, concisi e precisi\n'
+      + '5. Ricalcola il tipo: "universal" se >= 65% su tutti i CdL, '
+      + '"profile_dependent" se >= 50% su almeno un CdL, "discretionary" altrimenti\n'
+      + '6. Per ogni argomento indica quali argomenti grezzi hai fuso nel campo "fused_from"\n\n'
+      + 'Struttura JSON attesa:\n'
+      + '{\n'
+      + '  "normalized_modules": [\n'
+      + '    {\n'
+      + '      "name": "Nome normalizzato",\n'
+      + '      "coverage_type": "universal|profile_dependent|discretionary",\n'
+      + '      "freqs": {"' + (cdls[0]||'CdL1') + '": 75, "' + (cdls[1]||'CdL2') + '": 80},\n'
+      + '      "fused_from": ["Argomento grezzo 1", "Argomento grezzo 2"],\n'
+      + '      "key_concepts": ["concetto1", "concetto2", "concetto3"]\n'
+      + '    }\n'
+      + '  ],\n'
+      + '  "removed": ["argomento eliminato 1"],\n'
+      + '  "normalization_notes": "Breve nota sulle fusioni principali"\n'
+      + '}';
+
+    var resp1 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STATE.apiKey },
+      body: JSON.stringify({
+        model: STATE.model,
+        messages: [
+          { role: 'system', content: step1System },
+          { role: 'user',   content: step1User   }
+        ],
+        temperature: 0.1,
+        max_tokens: 2500
+      })
+    });
+    if (!resp1.ok) throw new Error('API Step1 error: ' + resp1.status);
+    var data1 = await resp1.json();
+    var raw1  = data1.choices[0].message.content.trim();
+
+    var step1Result;
+    try {
+      var match1 = raw1.match(/\{[\s\S]*\}/);
+      step1Result = JSON.parse(match1 ? match1[0] : raw1);
+    } catch(e) {
+      throw new Error('Step 1 risposta non valida: ' + raw1.substring(0, 300));
+    }
+
+    var normalizedModules = step1Result.normalized_modules || [];
+    if (!normalizedModules.length) throw new Error('Step 1 non ha prodotto moduli normalizzati');
+
+    // ── Aggiorna moduli nel framework ──
+    var order = { universal:0, profile_dependent:1, discretionary:2 };
+    STATE.framework.content.syllabus_modules = normalizedModules.map(function(m) {
+      var cc = (m.fused_from && m.fused_from.length > 1)
+        ? ['Comprende: ' + m.fused_from.join(', ')]
+        : [m.name + ' - completare con i contenuti specifici del modulo'];
+      return {
+        name:          m.name,
+        coverage_type: m.coverage_type,
+        core_contents: cc,
+        key_concepts:  m.key_concepts || [m.name],
+        _freqs:        m.freqs || {}
+      };
+    });
+    STATE.framework.content.syllabus_modules.sort(function(a,b){
+      return order[a.coverage_type] - order[b.coverage_type];
+    });
+
+    renderModulesList();
+    showToast('Step 1 completato - ' + normalizedModules.length + ' moduli normalizzati');
+
+    // ════════════════════════════════
+    //  STEP 2 — Generazione testi
+    // ════════════════════════════════
+    showToast('Step 2/2 - Generazione testi framework...', 'warning');
+
+    var moduliNorm   = STATE.framework.content.syllabus_modules;
+    var universali   = moduliNorm.filter(function(m){ return m.coverage_type==='universal'; }).map(function(m){ return m.name; });
+    var profileDep   = moduliNorm.filter(function(m){ return m.coverage_type==='profile_dependent'; }).map(function(m){ return m.name; });
+    var discretion   = moduliNorm.filter(function(m){ return m.coverage_type==='discretionary'; }).map(function(m){ return m.name; });
+
+    var moduliText = '';
+    moduliNorm.forEach(function(m) {
+      var freqStr = cdls.map(function(c){ return c + ':' + (m._freqs ? (m._freqs[c]||0) : 0) + '%'; }).join(', ');
+      moduliText += '- "' + m.name + '" [' + m.coverage_type + '] ' + freqStr + '\n';
+    });
+
+    var normNotes = step1Result.normalization_notes || '';
+
+    var cdlsStr    = cdls.join(' e ');
+    var univStr    = universali.join(', ') || 'nessuno';
+    var profStr    = profileDep.join(', ') || 'nessuno';
+    var discStr    = discretion.join(', ') || 'nessuno';
+
+    var step2System = 'Sei un consulente editoriale specializzato in testi universitari italiani per case editrici come Zanichelli, Il Mulino, Pearson Italia. '
+      + 'Hai accesso ai dati reali di un censimento di programmi universitari italiani. '
+      + 'Produci testi operativi per un framework di analisi curricolare usato da promotori editoriali sul campo. '
+      + 'I testi devono essere immediatamente utilizzabili da un promotore commerciale, senza revisione editoriale. '
+      + 'Scrivi in italiano professionale. Sii specifico, basati sempre sui dati reali. Evita genericita. '
+      + 'Rispondi SOLO con un oggetto JSON valido, senza markdown, senza spiegazioni.';
+
+    // ── Costruisci la lista moduli per modules_enriched ──
+    var moduliEnrichedTemplate = '';
+    moduliNorm.forEach(function(m, i) {
+      var sep = (i < moduliNorm.length - 1) ? ',' : '';
+      moduliEnrichedTemplate += '    {"name": "' + m.name + '", "core_contents": "...", "key_concepts": ["...", "...", "..."]}'  + sep + '\n';
+    });
+
+    // ── Costruisci i program_profiles template ──
+    var profilesTemplate = '';
+    cdls.forEach(function(c, i) {
+      var sep = (i < cdls.length - 1) ? ',' : '';
+      profilesTemplate += '    {"name": "' + c + '", "priority_modules": "..."}'  + sep + '\n';
+    });
+
+    var step2User = 'Framework: "' + fw.name + '" (SSD: ' + (info ? info.ssd : '') + ')\n'
+      + 'Campione: ' + cdls.map(function(c){ return c + ' n=' + (counts[c]||'?'); }).join(', ')
+      + ' - totale ' + totale + ' programmi\n\n'
+      + 'MODULI DOPO NORMALIZZAZIONE:\n'
+      + 'Universal: ' + univStr + '\n'
+      + 'Profile-dependent: ' + profStr + '\n'
+      + 'Discretionary: ' + discStr + '\n\n'
+      + 'FREQUENZE DETTAGLIATE:\n' + moduliText + '\n'
+      + 'ARGOMENTI DISCRIMINANTI:\n' + discText + '\n'
+      + 'NOTE NORMALIZZAZIONE: ' + normNotes + '\n\n'
+      + 'ESEMPI DI RIFERIMENTO (struttura attesa da MATRIX):\n'
+      + 'context_strategy BUONA: "Corso avanzato per Economisti. La discriminante e il rigore matematico. Distinguere tra approccio discorsivo e modellistico."\n'
+      + 'context_strategy CATTIVA: "La materia e presente come insegnamento obbligatorio in quasi tutti i CdL..."\n'
+      + 'core_contents BUONO: "Attenzione selettiva e divisa: teorie del filtro (Broadbent, Treisman), modelli a risorse limitate (Kahneman). Elaborazione controllata vs automatica."\n'
+      + 'core_contents CATTIVO: "Comprende: Attenzione selettiva, Attenzione divisa"\n'
+      + 'evaluation_criterion BUONO: "Il programma distingue esplicitamente tra memoria di lavoro (Baddeley) e memoria a lungo termine?"\n'
+      + 'evaluation_criterion CATTIVO: "Il programma affronta in modo approfondito il tema della Memoria?"\n\n'
+      + 'Genera un oggetto JSON con questa struttura ESATTA:\n'
+      + '{\n'
+      + '  "context_strategy": "MAX 2 righe operative. Discriminante principale tra testi di ' + fw.name + '. Differenze chiave tra ' + cdlsStr + '. Stile: Materia dove [discriminante]. Distinguere tra [profilo A] e [profilo B]."\n,'
+      + '  "modules_enriched": [\n'
+      + moduliEnrichedTemplate
+      + '  ],\n'
+      + '  "evaluation_criteria": {\n'
+      + '    "NOTA": "Le chiavi devono essere nomi DESCRITTIVI in snake_case che identificano il criterio (es: distinzione_memoria, approccio_metodologico, copertura_emozioni). MAI usare chiave_snake_1 o simili placeholder numerici.",\n'
+      + '    "esempio_chiave_descrittiva_1": "Domanda verificabile leggendo il programma. Discrimina tra testi con stesso indice ma approcci diversi. Formato: Il programma [azione specifica]..."\n,'
+      + '    "esempio_chiave_descrittiva_2": "Seconda domanda diagnostica specifica"\n,'
+      + '    "esempio_chiave_descrittiva_3": "Terza domanda diagnostica specifica"\n,'
+      + '    "esempio_chiave_descrittiva_4": "Quarta domanda diagnostica specifica"\n,'
+      + '    "esempio_chiave_descrittiva_5": "Quinta domanda diagnostica specifica"\n'
+      + '  },\n'
+      + '  "program_profiles": [\n'
+      + profilesTemplate
+      + '  ]\n'
+      + '}\n\n'
+      + 'REGOLE:\n'
+      + '- context_strategy: MAX 2 righe, operativa, discriminante identificata chiaramente\n'
+      + '- core_contents di modules_enriched: narrativo e denso, minimo 2 righe per modulo, con teorie e autori - MAI lista di nomi\n'
+      + '- evaluation_criteria: 5 criteri con chiavi snake_case descrittive, domande verificabili\n'
+      + '- program_profiles: 3-4 righe operative per promotore, con dati numerici reali\n'
+      + '- Restituisci SOLO il JSON, nessun testo prima o dopo';
+
+    var resp2 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STATE.apiKey },
+      body: JSON.stringify({
+        model: STATE.model,
+        messages: [
+          { role: 'system', content: step2System },
+          { role: 'user',   content: step2User   }
+        ],
+        temperature: 0.3,
+        max_tokens: 2500
+      })
+    });
+    if (!resp2.ok) throw new Error('API Step2 error: ' + resp2.status);
+    var data2 = await resp2.json();
+    var raw2  = data2.choices[0].message.content.trim();
+
+    var step2Result;
+    try {
+      var match2 = raw2.match(/\{[\s\S]*\}/);
+      step2Result = JSON.parse(match2 ? match2[0] : raw2);
+    } catch(e) {
+      throw new Error('Step 2 risposta non valida: ' + raw2.substring(0, 300));
+    }
+
+    // ── Applica context_strategy ──
+    if (step2Result.context_strategy) {
+      STATE.framework.context_strategy = step2Result.context_strategy;
+      var csEl = document.getElementById('fwContextStrategy');
+      if (csEl) csEl.value = step2Result.context_strategy;
+    }
+
+    // ── Applica modules_enriched ──
+    if (step2Result.modules_enriched && step2Result.modules_enriched.length) {
+      step2Result.modules_enriched.forEach(function(enriched, i) {
+        if (STATE.framework.content.syllabus_modules[i]) {
+          if (enriched.core_contents)
+            STATE.framework.content.syllabus_modules[i].core_contents = [enriched.core_contents];
+          if (enriched.key_concepts && enriched.key_concepts.length)
+            STATE.framework.content.syllabus_modules[i].key_concepts = enriched.key_concepts;
+        }
+      });
+      renderModulesList();
+    }
+
+    // ── Applica evaluation_criteria ──
+    if (step2Result.evaluation_criteria && Object.keys(step2Result.evaluation_criteria).length) {
+      var cleaned = {};
+      Object.entries(step2Result.evaluation_criteria).forEach(function(entry) {
+        var k = entry[0]; var v = entry[1];
+        // Scarta placeholder numerici, la chiave NOTA e chiavi esempio
+        var isPlaceholder = k.match(/^chiave_snake_\d+$/)
+                         || k.match(/^esempio_chiave_descrittiva_\d+$/)
+                         || k === 'NOTA'
+                         || k === '_note';
+        if (k && !isPlaceholder && v && v.length > 5) cleaned[k] = v;
+      });
+      STATE.framework.content.evaluation_criteria =
+        Object.keys(cleaned).length ? cleaned : step2Result.evaluation_criteria;
+      renderEvaluationCriteria();
+    }
+    // ── Applica program_profiles ──
+    if (step2Result.program_profiles && step2Result.program_profiles.length) {
+      step2Result.program_profiles.forEach(function(pp, i) {
+        if (STATE.framework.content.program_profiles[i]) {
+          if (pp.priority_modules)
+            STATE.framework.content.program_profiles[i].priority_modules = pp.priority_modules;
+          if (pp.name)
+            STATE.framework.content.program_profiles[i].name = pp.name;
+        }
+      });
+      renderProfilesList();
+    }
+
+    refreshJsonPreview();
+    showToast('Framework normalizzato e completato - pronto per export!');
+
+  } catch(e) {
+    console.error('generateWithAI error:', e);
+    showToast('Errore: ' + e.message, 'error');
+  } finally {
+    btn.disabled        = false;
+    label.style.display = 'none';
+    autoSaveState();
+  }
+}
+
+//  JSON FINAL — C4 FIX: usa _meta e STATE come fonte primaria,
+//  i campi HTML come override se presenti e non vuoti
+// ════════════════════════════════════════════════════════════════
+function getFinalJson() {
+  if (!STATE.framework) return null;
+  const fw = STATE.framework;
+
+  const readField = function(id) {
+    var el = document.getElementById(id);
+    return (el && el.value.trim()) ? el.value.trim() : null;
+  };
+
+  var id               = readField('fwId')              || fw.id;
+  var name             = readField('fwName')             || fw.name;
+  var subjectRaw       = readField('fwSubject')          || fw.subject || '';
+  var context_strategy = readField('fwContextStrategy')  || fw.context_strategy || '';
+
+  // Mappatura automatica subject -> id area MATRIX
+  var subjectMap = {
+    'psicologia generale':            'psicologia',
+    'psicologia clinica':             'psicologia',
+    'psic. dello sviluppo':           'psicologia',
+    'psicologia dello sviluppo':      'psicologia',
+    'psicologia sociale':             'psicologia',
+    'psicometria':                    'psicologia',
+    'antropologia culturale':         'scienze_umane',
+    'sociologia generale':            'scienze_umane',
+    'chimica generale':               'chimica',
+    'chimica organica':               'chimica',
+    'fisica':                         'fisica',
+    'fisica generale':                'fisica',
+    'matematica':                     'matematica',
+    'analisi matematica':             'matematica',
+    'microeconomia':                  'economia',
+    'macroeconomia':                  'economia',
+    'economia politica':              'economia',
+    'biologia':                       'biologia',
+    'biologia cellulare':             'biologia',
+    'biologia molecolare':            'biologia',
+    'biochimica':                     'biologia',
+    'genetica':                       'biologia',
+    'microbiologia':                  'biologia',
+    'istologia':                      'istologia'
+  };
+
+  var subjectNormalized = subjectMap[subjectRaw.toLowerCase().trim()] || subjectRaw;
+
+  var syllabus_modules = fw.content.syllabus_modules.map(function(m) {
+    var core_str = Array.isArray(m.core_contents)
+      ? m.core_contents.filter(Boolean).join('. ')
+      : (m.core_contents || '');
+    var kc = (m.key_concepts || []).map(function(k) {
+      return typeof k === 'object' ? (k.concetto || k.name || JSON.stringify(k)) : String(k);
+    }).filter(Boolean);
+    return { name: m.name, core_contents: core_str, key_concepts: kc };
+  });
+
+  var evaluation_criteria = Object.assign({}, fw.content.evaluation_criteria || {});
+  delete evaluation_criteria._note;
+
+  return {
+    id: id,
+    name: name,
+    subject: subjectNormalized,
+    context_strategy: context_strategy,
+    content: {
+      target_degrees:      fw.content.target_degrees,
+      evaluation_criteria: evaluation_criteria,
+      program_profiles:    fw.content.program_profiles.map(function(p) {
+        return { name: p.name, priority_modules: p.priority_modules };
+      }),
+      syllabus_modules: syllabus_modules
+    }
+  };
+}
+
+function refreshJsonPreview() {
+  const fw = getFinalJson();
+  const el = document.getElementById('jsonPreview');
+  if (!fw||!el) return;
+  el.textContent = JSON.stringify(fw,null,2);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  EXPORT
+// ════════════════════════════════════════════════════════════════
+function downloadJson() {
+  // Sincronizza STATE prima di esportare
+  autoSaveState();
+  const fw = getFinalJson();
+  if (!fw) { showToast('⚠️ Nessun framework da esportare','warning'); return; }
+  const blob = new Blob([JSON.stringify(fw,null,2)],{type:'application/json'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = fw.id+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('✅ JSON scaricato: '+fw.id+'.json');
+}
+
+function copyJsonClipboard() {
+  autoSaveState();
+  const fw = getFinalJson();
+  if (!fw) return;
+  navigator.clipboard.writeText(JSON.stringify(fw,null,2))
+    .then(()=>showToast('✅ JSON copiato negli appunti'))
+    .catch(()=>showToast('❌ Errore copia','error'));
+}
+
+// ── CSV: usa STATE.allArgs direttamente — non dipende da campi HTML ──
+function downloadCsv() {
+  // Cerca la materia: prima dal select frequenze, poi dallo STATE
+  const selEl   = document.getElementById('freqMateriaFilter');
+  const materia = (selEl?.value) || STATE.selectedMateria ||
+                  Object.keys(STATE.allArgs)[0] || '';
+  if (!materia || !STATE.allArgs[materia]) {
+    showToast('⚠️ Nessun dato frequenze da esportare','warning'); return;
+  }
+  const cdlData = STATE.allArgs[materia];
+  const counts  = STATE.sampleCounts[materia]||{};
+  const cdls    = Object.keys(cdlData);
+  const allArgs = [...new Set(cdls.flatMap(c=>Object.keys(cdlData[c])))].sort();
+  const header  = ['Argomento','Tipo',
+    ...cdls.map(c=>`${c} (n=${counts[c]||0}) %`)].join(',');
+  const rows = allArgs.map(arg=>{
+    const freqsByCdl = Object.fromEntries(
+      cdls.map(cdl=>{
+        const n=counts[cdl]||1;
+        return [cdl, Math.round(((cdlData[cdl][arg]||0)/n)*100)];
+      })
+    );
+    const type = getArgType(arg,freqsByCdl,cdls,counts);
+    return [`"${arg}"`,type,...cdls.map(c=>freqsByCdl[c])].join(',');
+  });
+  const csv  = [header,...rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = materia+'_frequenze.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('✅ CSV scaricato');
+}
+
+// ── PDF: C4 FIX — usa STATE.framework direttamente, non getFinalJson()
+//    che richiederebbe i campi HTML montati. Chiama getFinalJson() solo
+//    dopo autoSaveState() per garantire la sincronizzazione. ──
+function downloadReport() {
+  autoSaveState();             // sincronizza STATE dai campi HTML se visibili
+  const fw = getFinalJson();   // ora legge STATE aggiornato
+  if (!fw) { showToast('⚠️ Genera prima un framework','warning'); return; }
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W   = 170;
+    let y     = 20;
+
+    function addText(text,x,size,color,style){
+      doc.setFontSize(size);
+      doc.setTextColor(...(color||[0,0,0]));
+      doc.setFont('helvetica', style==='bold'?'bold':'normal');
+      const lines = doc.splitTextToSize(String(text||''), W-x+20);
+      lines.forEach(line=>{
+        if(y>275){doc.addPage();y=20;}
+        doc.text(line,x,y);
+        y+=size*0.45;
+      });
+      y+=2;
+    }
+
+    function addSeparator(color){
+      if(y>275){doc.addPage();y=20;}
+      doc.setDrawColor(...(color||[0,166,81]));
+      doc.setLineWidth(0.4);
+      doc.line(20,y,190,y);
+      y+=5;
+    }
+
+    function addSection(title){
+      if(y>260){doc.addPage();y=20;}
+      y+=3;
+      doc.setFillColor(0,166,81);
+      doc.roundedRect(20,y-4,W,8,1,1,'F');
+      doc.setFontSize(10);doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold');
+      doc.text(title,23,y+1);
+      y+=9;
+      doc.setFont('helvetica','normal');
+    }
+
+    // Header
+    doc.setFillColor(0,122,61);
+    doc.rect(0,0,210,28,'F');
+    doc.setFontSize(18);doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.text('MATRIX Framework Builder',20,12);
+    doc.setFontSize(11);doc.setFont('helvetica','normal');
+    doc.text('Report Metodologico — '+fw.name,20,20);
+    y=36;
+
+    addText('ID: '+fw.id,20,9,[100,100,100]);
+    addText('Materia: '+fw.name+'  |  Subject: '+fw.subject,20,9,[100,100,100]);
+    addText('Generato: '+new Date().toLocaleDateString('it-IT')+
+      '  |  Target: '+fw.content.target_degrees.join(', '),20,9,[100,100,100]);
+    addSeparator();
+
+    const counts = STATE.framework?._meta?.counts||{};
+    if(Object.keys(counts).length){
+      addSection('📊 Campione analizzato');
+      Object.entries(counts).forEach(([cdl,n])=>addText(`${cdl}: ${n} programmi`,24,10));
+    }
+
+    if(fw.context_strategy){
+      addSection('🎯 Context Strategy');
+      addText(fw.context_strategy,23,10);
+    }
+
+    if(fw.content.evaluation_criteria&&Object.keys(fw.content.evaluation_criteria).length){
+      addSection('🔍 Criteri di valutazione diagnostica');
+      Object.entries(fw.content.evaluation_criteria).forEach(([key,val])=>{
+        addText('• '+key.replace(/_/g,' '),23,10,[0,100,60],'bold');
+        addText(val,27,9,[60,60,60]);
+      });
+    }
+
+    if(fw.content.program_profiles?.length){
+      addSection('🎓 Program Profiles per CdL');
+      fw.content.program_profiles.forEach(p=>{
+        addText(p.name,23,11,[0,0,0],'bold');
+        addText(p.priority_modules,25,9,[60,60,60]);
+        y+=3;
+      });
+    }
+
+    addSection('📚 Syllabus Modules ('+fw.content.syllabus_modules.length+')');
+    const internal = STATE.framework?.content?.syllabus_modules||[];
+    const nU=internal.filter(m=>m.coverage_type==='universal').length;
+    const nP=internal.filter(m=>m.coverage_type==='profile_dependent').length;
+    const nD=internal.filter(m=>m.coverage_type==='discretionary').length;
+    addText(`Universal: ${nU}  |  Profile-dependent: ${nP}  |  Discretionary: ${nD}`,23,9,[100,100,100]);
+    y+=2;
+
+    fw.content.syllabus_modules.forEach((m,i)=>{
+      if(y>268){doc.addPage();y=20;}
+      const im=internal[i];
+      const tipo =
+        im?.coverage_type==='universal'         ? '[U]'
+        : im?.coverage_type==='profile_dependent' ? '[P]'
+        : '[D]';
+      const tc =
+        im?.coverage_type==='universal'         ? [0,166,81]
+        : im?.coverage_type==='profile_dependent' ? [245,158,11]
+        : [156,163,175];
+      doc.setFontSize(10);doc.setFont('helvetica','bold');
+      doc.setTextColor(...tc);doc.text(tipo,23,y);
+      doc.setTextColor(0,0,0);doc.text(m.name,31,y);
+      y+=5;
+      if(m.core_contents){
+        const lines=doc.splitTextToSize(m.core_contents,W-15);
+        doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+        lines.slice(0,2).forEach(line=>{
+          if(y>275){doc.addPage();y=20;}
+          doc.text(line,31,y);y+=4;
+        });
+      }
+      y+=1;
+    });
+
+    const totalPages=doc.internal.getNumberOfPages();
+    for(let p=1;p<=totalPages;p++){
+      doc.setPage(p);
+      doc.setFontSize(8);doc.setTextColor(180,180,180);doc.setFont('helvetica','normal');
+      doc.text('MATRIX Framework Builder — '+fw.name+' — pag. '+p+'/'+totalPages,20,290);
+    }
+
+    doc.save(fw.id+'_report_'+new Date().toISOString().split('T')[0]+'.pdf');
+    showToast('✅ Report PDF scaricato');
+  } catch(e) {
+    console.error('downloadReport error:',e);
+    showToast('❌ Errore generazione PDF: '+e.message,'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SESSIONI
+// ════════════════════════════════════════════════════════════════
+function saveSession() {
+  const session = {
+    id:          Date.now(),
+    date:        new Date().toLocaleDateString('it-IT'),
+    materie:     [...new Set(STATE.files.map(f=>f.materia))],
+    totFiles:    STATE.files.filter(f=>f.status==='done').length,
+    allArgs:     STATE.allArgs,
+    sampleCounts:STATE.sampleCounts
+  };
+  STATE.sessions.unshift(session);
+  if (STATE.sessions.length>10) STATE.sessions.pop();
+  localStorage.setItem('mfb_sessions',JSON.stringify(STATE.sessions));
+  renderSessions();
+}
+
+function renderSessions() {
+  const list = document.getElementById('sessionsList');
+  if (!STATE.sessions.length) {
+    list.innerHTML=`<div style="text-align:center;padding:40px;color:var(--gray-3)">
+      <i class="fas fa-history" style="font-size:32px;display:block;margin-bottom:8px"></i>
+      <p>Nessuna sessione salvata.</p></div>`;
+    return;
+  }
+  list.innerHTML = STATE.sessions.map(s=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--gray-2)">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px">${s.date}</div>
+        <div style="font-size:12px;color:var(--text-2)">
+          ${s.materie.join(', ')} · ${s.totFiles} PDF elaborati
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="loadSession(${s.id})">
+        <i class="fas fa-folder-open"></i> Riprendi
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSession(${s.id})">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
+function loadSession(id) {
+  const s = STATE.sessions.find(x=>x.id===id);
+  if (!s) return;
+  STATE.allArgs      = s.allArgs;
+  STATE.sampleCounts = s.sampleCounts;
+  updateFreqFilters();
+  showView('frequencyView');
+  showToast('✅ Sessione ripresa');
+}
+
+function deleteSession(id) {
+  STATE.sessions = STATE.sessions.filter(s=>s.id!==id);
+  localStorage.setItem('mfb_sessions',JSON.stringify(STATE.sessions));
+  renderSessions();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  UTILITY
+// ════════════════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open');    }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background =
+    type==='warning' ? '#92400e'
+    : type==='error' ? '#991b1b'
+    : '#166534';
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.style.display='none', 3200);
+}
+</script>
+</body>
+</html>
+</head>
+<body>

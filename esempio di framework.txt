@@ -1,0 +1,136 @@
+{
+  "content": {
+    "evaluation_criteria": {
+      "growth_models": "Check specifico: Solo Solow (esogeno) o anche Romer/Lucas (crescita endogena)?",
+      "macro_models_included": "Check specifico: Presenza di IS-LM esteso? Modello AD-AS? Modello a 3 equazioni (Nuovo Consenso)? Curva di Phillips (tradizionale o accelerata)?",
+      "macro_sequence": "Verificare l'ordine di presentazione: Breve periodo -> Lungo periodo (approccio tradizionale Keynesiano/IS-LM) oppure Lungo periodo -> Breve periodo (approccio Neoclassico/RBC)?",
+      "micro_models_focus": "Verificare il livello di formalizzazione matematica: ottimizzazione vincolata con Lagrangiana (per Economisti) vs approccio grafico/intuitivo (per Giuristi/Sociologi)?",
+      "school_of_thought": "Identificare l'orientamento: Neoclassico standard, Keynesiano, Sintesi Neoclassica, o approcci Eterodossi/Critici?"
+    },
+    "program_profiles": [
+      {
+        "name": "L-18 Economia Aziendale / L-41 Statistica",
+        "priority_modules": "Cruciale il rigore formale. Focus assoluto su Moduli 2 (Impresa/Costi), 4 (Teoria dei Giochi) e 6-7 (IS-LM, AD-AS). Richiede un testo che usi derivate e ottimizzazione. Il modello di crescita (8) deve includere Solow analitico. Marginale l'approccio puramente discorsivo."
+      },
+      {
+        "name": "L-36 Scienze Politiche / L-16 Amministrazione",
+        "priority_modules": "Focus su Policy e Storia. Cruciale il Modulo 3 (Fallimenti di mercato/Stato) e 5-6 (Politiche Macro). Importante la comprensione delle scuole di pensiero (Keynes vs Neoclassici). Il formalismo matematico deve essere minimo (solo grafico/algebrico semplice), privilegiando l'intuizione economica e le implicazioni sociali."
+      },
+      {
+        "name": "LMG-01 Giurisprudenza / L-14 Servizi Giuridici",
+        "priority_modules": "Focus Istituzionale. Priorità massima ai Moduli 3 (Antitrust, Regolamentazione, Esternalità) e 1 (Concetti base). La parte Macro deve concentrarsi sul ruolo della BCE e sul Bilancio dello Stato (Patto di Stabilità). Evitare testi con dimostrazioni matematiche complesse o Teoria dei Giochi avanzata."
+      },
+      {
+        "name": "L-15 Turismo / L-20 Comunicazione / L-39 Sociale",
+        "priority_modules": "Focus Applicativo 'Light'. Cruciale la comprensione intuitiva di Domanda/Offerta (1) ed Elasticità. Importante il Modulo 9 (Internazionale/Cambi) per il turismo e il Modulo 8 (Disuguaglianze) per il sociale. Evitare modelli macro complessi (IS-LM a 3 equazioni) e concentrarsi su concetti base di inflazione e PIL."
+      }
+    ],
+    "syllabus_modules": [
+      {
+        "core_contents": "Analisi della domanda e offerta, concetto di equilibrio e spostamenti delle curve. Elasticità (prezzo, reddito, incrociata). Teoria della scelta del consumatore: preferenze, vincolo di bilancio, curve di indifferenza e utilità marginale.",
+        "key_concepts": [
+          "Equilibrio di mercato",
+          "Teoria della scelta del consumatore",
+          "Elasticità della domanda"
+        ],
+        "name": "1. Micro - Fondamenti e Teoria del Consumatore"
+      },
+      {
+        "core_contents": "Funzioni di produzione e curve di costo (breve vs lungo periodo). Massimizzazione del profitto. Analisi comparata delle forme di mercato: Concorrenza Perfetta (efficienza), Monopolio (deadweight loss, discriminazione), Oligopolio e Concorrenza Monopolistica.",
+        "key_concepts": [
+          "Massimizzazione del profitto",
+          "Analisi delle strutture di mercato",
+          "Funzioni di produzione"
+        ],
+        "name": "2. Micro - Teoria dell'Impresa e Strutture di Mercato"
+      },
+      {
+        "core_contents": "Esternalità (positive/negative), Beni Pubblici e risorse comuni. Asimmetrie informative (azzardo morale, selezione avversa). Strumenti di policy: tasse pigouviane, sussidi, regolamentazione prezzi e quantità, antitrust.",
+        "key_concepts": [
+          "Fallimenti di Mercato",
+          "Asimmetrie Informative",
+          "Esternalità Negative"
+        ],
+        "name": "3. Micro - Fallimenti di Mercato e Intervento Pubblico"
+      },
+      {
+        "core_contents": "Teoria dei Giochi di base: giochi simultanei (Equilibrio di Nash), giochi sequenziali, dilemma del prigioniero. Applicazioni alle strategie d'impresa.",
+        "key_concepts": [
+          "Teoria dei Giochi",
+          "Equilibrio di Nash",
+          "Giochi simultanei"
+        ],
+        "name": "4. Micro - Interazione Strategica"
+      },
+      {
+        "core_contents": "Definizioni di PIL, PNL, Inflazione (CPI, deflatore). Modello Keynesiano semplice (croce keynesiana): funzione del consumo, moltiplicatore della spesa pubblica e degli investimenti.",
+        "key_concepts": [
+          "Modello Keynesiano Semplice",
+          "Moltiplicatore della Spesa Pubblica",
+          "Prodotto Interno Lordo (PIL)"
+        ],
+        "name": "5. Macro - Contabilità e Modello Reddito-Spesa"
+      },
+      {
+        "core_contents": "Mercato dei beni (Curva IS) e mercato della moneta/titoli (Curva LM). Ruolo delle Banche Centrali, offerta di moneta e tassi di interesse. Efficacia relativa della politica fiscale e monetaria nel breve periodo.",
+        "key_concepts": [
+          "Modello IS-LM",
+          "Mercato dei beni",
+          "Curva IS (Investment-Saving)"
+        ],
+        "name": "6. Macro - Mercati Reali e Finanziari (IS-LM)"
+      },
+      {
+        "core_contents": "Definizioni di disoccupazione (frizionale, ciclica, strutturale). Curva di Phillips e aspettative. Modello di Offerta Aggregata e Domanda Aggregata (AD-AS). Analisi degli shock di domanda e offerta.",
+        "key_concepts": [
+          {
+            "concetto": "Modello Domanda-Offerta Aggregata (AD-AS)"
+          },
+          {
+            "concetto": "Curva di Phillips e aspettative"
+          },
+          {
+            "concetto": "Shock di domanda e offerta aggregata"
+          }
+        ],
+        "name": "7. Macro - Mercato del Lavoro e Inflazione (AD-AS)"
+      },
+      {
+        "core_contents": "Teoria della crescita: contabilità della crescita, Modello di Solow (accumulazione capitale), cenni alla crescita endogena (capitale umano, tecnologia). Indicatori di sviluppo (HDI, Gini) e disuguaglianze.",
+        "key_concepts": [
+          "Teoria della Crescita Economica",
+          "Modello di Solow",
+          "Accumulazione del Capitale"
+        ],
+        "name": "8. Macro - Lungo Periodo: Crescita e Sviluppo"
+      },
+      {
+        "core_contents": "Vantaggio comparato (Ricardo) e guadagni dallo scambio. Bilancia dei pagamenti, tassi di cambio (fissi vs flessibili) e impatto sulle politiche macroeconomiche.",
+        "key_concepts": [
+          "Vantaggio Comparato",
+          "Modello Ricardiano",
+          "Guadagni dallo Scambio"
+        ],
+        "name": "9. Economia Internazionale"
+      }
+    ],
+    "target_degrees": [
+      "L-12 Mediazione linguistica",
+      "L-14 Scienze dei servizi giuridici",
+      "L-15 Scienze del turismo",
+      "L-16 Scienze dell’amministrazione",
+      "L-18 Economia aziendale",
+      "L-20 Scienze della comunicazione",
+      "L-36 Scienze politiche",
+      "L-37 Servizio sociale",
+      "L-39 Scienze sociali e della cooperazione",
+      "L-40 Sociologia",
+      "L-41 Statistica",
+      "LMG-01 Giurisprudenza"
+    ]
+  },
+  "context_strategy": "Materia dove due libri con lo stesso indice possono essere opposti. Distinguere tra approccio discorsivo/istituzionale (Giurisprudenza/Scienze Politiche) e matematico/modellistico (Economia). Fondamentale mappare la scuola di pensiero (Keynesiana vs Neoclassica) e la sequenza temporale (breve vs lungo periodo)",
+  "id": "economia_politica_framework",
+  "name": "Economia Politica (Micro & Macro)",
+  "subject": "Economia"
+}

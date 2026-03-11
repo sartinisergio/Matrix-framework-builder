@@ -1,0 +1,130 @@
+{
+  "id": "psicologia_generale_framework",
+  "name": "Psicologia Generale",
+  "subject": "psicologia",
+  "context_strategy": "Materia dove la distinzione tra approcci teorici è cruciale. Discriminante principale tra L-19/LM-85bis e L-24 è l'enfasi su aspetti storici e cognitivi. Distinguere tra approccio più tradizionale (L-19/LM-85bis) e approccio più contemporaneo (L-24).",
+  "content": {
+    "target_degrees": [
+      "L-19/LM-85bis",
+      "L-24"
+    ],
+    "evaluation_criteria": {
+      "distinzione_memoria": "Il programma distingue esplicitamente tra memoria di lavoro e memoria a lungo termine?",
+      "approccio_metodologico": "Il programma include una varietà di metodi di ricerca, sia qualitativi che quantitativi?",
+      "copertura_emozioni": "Il programma affronta in modo approfondito il tema delle emozioni e dei processi affettivi?",
+      "integrazione_storia": "Il programma integra la storia della psicologia con le teorie contemporanee?",
+      "analisi_pensiero": "Il programma analizza in modo critico i processi di pensiero e ragionamento?"
+    },
+    "program_profiles": [
+      {
+        "name": "L-19/LM-85bis",
+        "priority_modules": "Forte enfasi su Storia della psicologia (63%) e Motivazione (67%). Approccio tradizionale con focus su teorie classiche e metodi di ricerca."
+      },
+      {
+        "name": "L-24",
+        "priority_modules": "Maggiore attenzione a Pensiero e ragionamento (68%) e Linguaggio e cognizione (61%). Approccio contemporaneo con integrazione di teorie moderne e applicazioni pratiche."
+      }
+    ],
+    "syllabus_modules": [
+      {
+        "name": "Emozioni e processi affettivi",
+        "core_contents": "Questo modulo esplora le teorie delle emozioni, come quelle di James-Lange e Cannon-Bard, analizzando il ruolo delle emozioni nei processi decisionali e nelle interazioni sociali. Viene discusso anche il modello di emozioni di Scherer, che integra aspetti cognitivi e fisiologici.",
+        "key_concepts": [
+          "teoria di James-Lange",
+          "modello di Scherer",
+          "processi decisionali"
+        ]
+      },
+      {
+        "name": "Memoria",
+        "core_contents": "Il modulo analizza le diverse tipologie di memoria, con particolare attenzione alla memoria a breve termine e alla memoria a lungo termine, includendo le teorie di Baddeley e Tulving. Viene anche trattato il concetto di memoria autobiografica e il suo impatto sull'identità personale.",
+        "key_concepts": [
+          "memoria a breve termine",
+          "memoria autobiografica",
+          "teoria di Baddeley"
+        ]
+      },
+      {
+        "name": "Percezione",
+        "core_contents": "Questo modulo si concentra sui processi percettivi, analizzando le teorie della percezione visiva e uditiva, come il modello di Gestalt. Viene discusso il ruolo dell'attenzione nella percezione e come le aspettative influenzano l'interpretazione sensoriale.",
+        "key_concepts": [
+          "teoria della Gestalt",
+          "attenzione percettiva",
+          "processi sensoriali"
+        ]
+      },
+      {
+        "name": "Attenzione",
+        "core_contents": "Il modulo esplora le teorie dell'attenzione selettiva e divisa, con riferimento ai modelli di Broadbent e Treisman. Viene analizzato come l'attenzione influisce sull'elaborazione delle informazioni e come può essere misurata attraverso vari paradigmi sperimentali.",
+        "key_concepts": [
+          "attenzione selettiva",
+          "modello di Treisman",
+          "paradigmi sperimentali"
+        ]
+      },
+      {
+        "name": "Metodi di ricerca in psicologia",
+        "core_contents": "Questo modulo introduce i principali metodi di ricerca utilizzati in psicologia, compresi gli approcci qualitativi e quantitativi. Viene discusso il valore della ricerca empirica e l'importanza della validità e della affidabilità degli strumenti di misura.",
+        "key_concepts": [
+          "metodi qualitativi",
+          "metodi quantitativi",
+          "validità e affidabilità"
+        ]
+      },
+      {
+        "name": "Motivazione",
+        "core_contents": "Il modulo analizza le teorie della motivazione, inclusi i modelli di Maslow e Herzberg. Viene discusso come la motivazione influisce sul comportamento umano e come può essere stimolata in contesti educativi e lavorativi.",
+        "key_concepts": [
+          "teoria di Maslow",
+          "teoria di Herzberg",
+          "motivazione intrinseca ed estrinseca"
+        ]
+      },
+      {
+        "name": "Linguaggio e cognizione",
+        "core_contents": "Questo modulo esplora il legame tra linguaggio e processi cognitivi, analizzando le teorie di Chomsky e il ruolo del linguaggio nel pensiero. Viene discusso come il linguaggio influisce sulla percezione e sull'interazione sociale.",
+        "key_concepts": [
+          "teoria di Chomsky",
+          "linguaggio e pensiero",
+          "interazione sociale"
+        ]
+      },
+      {
+        "name": "Storia della psicologia",
+        "core_contents": "Il modulo fornisce una panoramica delle principali scuole di pensiero in psicologia, dalle origini con Wundt fino alle teorie contemporanee. Viene analizzato l'evoluzione delle idee psicologiche e il loro impatto sulla pratica clinica e sulla ricerca.",
+        "key_concepts": [
+          "scuole di pensiero",
+          "evoluzione delle idee",
+          "impatto sulla pratica"
+        ]
+      },
+      {
+        "name": "Apprendimento",
+        "core_contents": "Questo modulo analizza i principali modelli di apprendimento, tra cui il condizionamento classico e operante. Viene discusso il ruolo dell'apprendimento sociale e le implicazioni per l'educazione e la formazione.",
+        "key_concepts": [
+          "condizionamento classico",
+          "apprendimento sociale",
+          "modelli educativi"
+        ]
+      },
+      {
+        "name": "Pensiero e ragionamento",
+        "core_contents": "Il modulo esplora i processi di pensiero e ragionamento, analizzando le teorie di Kahneman e Tversky. Viene discusso il ruolo dei bias cognitivi e come influenzano il processo decisionale.",
+        "key_concepts": [
+          "teoria dei bias cognitivi",
+          "processo decisionale",
+          "ragionamento logico"
+        ]
+      },
+      {
+        "name": "Basi biologiche del comportamento",
+        "core_contents": "Questo modulo si concentra sulle basi neurologiche e biologiche del comportamento umano, analizzando il ruolo del sistema nervoso e dei neurotrasmettitori. Viene discusso come le influenze genetiche e ambientali interagiscono nel determinare il comportamento.",
+        "key_concepts": [
+          "sistema nervoso",
+          "neurotrasmettitori",
+          "influenze genetiche"
+        ]
+      }
+    ]
+  }
+}
