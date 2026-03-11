@@ -2127,13 +2127,11 @@ function saveModule() {
 // ════════════════════════════════════════════════
 async function generateWithAI() {
   if (!SETTINGS.apiKey) {
-    showToast('Inserisci la chiave API nelle impostazioni', 'warning');
-    openModal('settingsModal');
-    return;
+    showToast('Inserisci la chiave API nelle impostazioni','warning');
+    openModal('settingsModal'); return;
   }
   if (!CURRENT_PROJECT || !CURRENT_PROJECT.framework) {
-    showToast('Genera prima il framework dalla tabella frequenze', 'warning');
-    return;
+    showToast('Genera prima il framework dalla tabella frequenze','warning'); return;
   }
 
   var btn   = document.getElementById('btnGenerateAI');
@@ -2145,61 +2143,54 @@ async function generateWithAI() {
     var fw     = CURRENT_PROJECT.framework;
     var cdls   = fw._meta ? fw._meta.cdls   : fw.content.target_degrees;
     var counts = fw._meta ? fw._meta.counts : {};
-    var modules = fw.content.syllabus_modules;
+    var modules= fw.content.syllabus_modules;
 
-    // ── Sommario frequenze ──────────────────────
     var freqSummary = '';
-    modules.forEach(function(m) {
-      var fl = cdls.map(function(c) {
-        return c + ':' + (m._freqs ? (m._freqs[c] !== undefined ? m._freqs[c] : '?') : '?') + '%';
+    modules.forEach(function(m){
+      var fl = cdls.map(function(c){
+        return c + ':' + (m._freqs ? (m._freqs[c]!==undefined?m._freqs[c]:'?') : '?') + '%';
       }).join(', ');
       freqSummary += '- ' + m.name + ' [' + m.coverage_type + '] -> ' + fl + '\n';
     });
 
-    // ── Top-6 argomenti discriminanti tra CdL ──
     var discriminanti = [];
-    modules.forEach(function(m) {
-      if (m._freqs && cdls.length >= 2) {
-        var vals  = cdls.map(function(c) { return m._freqs[c] || 0; });
-        var delta = Math.max.apply(null, vals) - Math.min.apply(null, vals);
-        discriminanti.push({ name: m.name, delta: delta, vals: vals });
+    modules.forEach(function(m){
+      if (m._freqs && cdls.length>=2) {
+        var vals  = cdls.map(function(c){ return m._freqs[c]||0; });
+        var delta = Math.max.apply(null,vals) - Math.min.apply(null,vals);
+        discriminanti.push({name:m.name, delta:delta, vals:vals});
       }
     });
-    discriminanti.sort(function(a, b) { return b.delta - a.delta; });
-    discriminanti = discriminanti.slice(0, 6);
+    discriminanti.sort(function(a,b){ return b.delta-a.delta; });
+    discriminanti = discriminanti.slice(0,6);
     var discText = '';
-    discriminanti.forEach(function(d) {
-      var vstr = cdls.map(function(c, i) { return c + '=' + d.vals[i] + '%'; }).join(', ');
+    discriminanti.forEach(function(d){
+      var vstr = cdls.map(function(c,i){ return c+'='+d.vals[i]+'%'; }).join(', ');
       discText += '- "' + d.name + '": delta ' + d.delta + '% (' + vstr + ')\n';
     });
 
     var cdlSample = '';
-    cdls.forEach(function(c) {
-      cdlSample += '- ' + c + ': ' + (counts[c] || '?') + ' programmi\n';
+    cdls.forEach(function(c){
+      cdlSample += '- ' + c + ': ' + (counts[c]||'?') + ' programmi\n';
     });
-    var totale = cdls.reduce(function(s, c) { return s + (counts[c] || 0); }, 0);
+    var totale = cdls.reduce(function(s,c){ return s+(counts[c]||0); },0);
 
-    // ════════════════════════════
-    //  STEP 1 — Normalizzazione
-    // ════════════════════════════
-    showToast('Step 1/2 - Normalizzazione argomenti...', 'warning');
-
+    // STEP 1
+    showToast('Step 1/2 - Normalizzazione argomenti...','warning');
     var argsText = '';
-    modules.forEach(function(m, i) {
-      var fs = cdls.map(function(c) {
-        return c + ':' + (m._freqs ? (m._freqs[c] || 0) : 0) + '%';
+    modules.forEach(function(m,i){
+      var fs = cdls.map(function(c){
+        return c+':'+(m._freqs?(m._freqs[c]||0):0)+'%';
       }).join(', ');
-      argsText += (i + 1) + '. "' + m.name + '" [' + m.coverage_type + '] - ' + fs + '\n';
+      argsText += (i+1)+'. "'+m.name+'" ['+m.coverage_type+'] - '+fs+'\n';
     });
 
-    var step1System =
-      'Sei un esperto di didattica universitaria italiana e di analisi curricolare. '
+    var step1System = 'Sei un esperto di didattica universitaria italiana e di analisi curricolare. '
       + 'Ricevi una lista di argomenti estratti automaticamente da programmi universitari italiani tramite OCR e AI. '
       + 'Produci una lista normalizzata e pulita. '
       + 'Rispondi SOLO con un oggetto JSON valido, senza markdown, senza spiegazioni.';
 
-    var step1User =
-      'Materia: ' + fw.name + ' (SSD: ' + (CURRENT_PROJECT.materiaSsd || '') + ')\n'
+    var step1User = 'Materia: ' + fw.name + ' (SSD: ' + (CURRENT_PROJECT.materiaSsd||'') + ')\n'
       + 'Classi di laurea:\n' + cdlSample + '\n'
       + 'ARGOMENTI GREZZI:\n' + argsText + '\n'
       + 'ISTRUZIONI:\n'
@@ -2210,329 +2201,162 @@ async function generateWithAI() {
       + '5. coverage_type: "universal">=65% tutti, "profile_dependent">=50% almeno uno, "discretionary" altrimenti\n'
       + '6. Indica fused_from per fusioni\n\n'
       + 'JSON atteso:\n'
-      + '{"normalized_modules":[{"name":"...","coverage_type":"...","freqs":{"' + cdls[0] + '":75},'
+      + '{"normalized_modules":[{"name":"...","coverage_type":"...","freqs":{"'+cdls[0]+'":75},'
       + '"fused_from":["..."],"key_concepts":["..."]}],'
       + '"removed":["..."],"normalization_notes":"..."}';
 
-    var r1 = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SETTINGS.apiKey },
-      body: JSON.stringify({
-        model: SETTINGS.model,
-        messages: [
-          { role: 'system', content: step1System },
-          { role: 'user', content: step1User }
-        ],
-        temperature: 0.1, max_tokens: 2500
-      })
+    var r1 = await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SETTINGS.apiKey},
+      body:JSON.stringify({model:SETTINGS.model,
+        messages:[{role:'system',content:step1System},{role:'user',content:step1User}],
+        temperature:0.1,max_tokens:2500})
     });
-    if (!r1.ok) throw new Error('API Step1 error: ' + r1.status);
+    if (!r1.ok) throw new Error('API Step1 error: '+r1.status);
     var d1   = await r1.json();
     var raw1 = d1.choices[0].message.content.trim();
     var step1Result;
-    try {
-      var m1 = raw1.match(/\{[\s\S]*\}/);
-      step1Result = JSON.parse(m1 ? m1[0] : raw1);
-    } catch(e) {
-      throw new Error('Step1 risposta non valida: ' + raw1.substring(0, 200));
-    }
+    try { var m1=raw1.match(/\{[\s\S]*\}/); step1Result=JSON.parse(m1?m1[0]:raw1); }
+    catch(e){ throw new Error('Step1 risposta non valida: '+raw1.substring(0,200)); }
 
-    var normModules = step1Result.normalized_modules || [];
+    var normModules = step1Result.normalized_modules||[];
     if (!normModules.length) throw new Error('Step1 non ha prodotto moduli');
 
-    var ordMap = { universal: 0, profile_dependent: 1, discretionary: 2 };
-    CURRENT_PROJECT.framework.content.syllabus_modules = normModules.map(function(m) {
-      var cc = (m.fused_from && m.fused_from.length > 1)
-        ? ['Comprende: ' + m.fused_from.join(', ')]
-        : [m.name + ' - completare con i contenuti specifici'];
-      return {
-        name: m.name,
-        coverage_type: m.coverage_type,
-        core_contents: cc,
-        key_concepts: m.key_concepts || [m.name],
-        _freqs: m.freqs || {}
-      };
+    var ordMap = {universal:0,profile_dependent:1,discretionary:2};
+    CURRENT_PROJECT.framework.content.syllabus_modules = normModules.map(function(m){
+      var cc = (m.fused_from&&m.fused_from.length>1)
+        ? ['Comprende: '+m.fused_from.join(', ')]
+        : [m.name+' - completare con i contenuti specifici'];
+      return {name:m.name,coverage_type:m.coverage_type,core_contents:cc,
+              key_concepts:m.key_concepts||[m.name],_freqs:m.freqs||{}};
     });
-    CURRENT_PROJECT.framework.content.syllabus_modules.sort(function(a, b) {
-      return ordMap[a.coverage_type] - ordMap[b.coverage_type];
+    CURRENT_PROJECT.framework.content.syllabus_modules.sort(function(a,b){
+      return ordMap[a.coverage_type]-ordMap[b.coverage_type];
     });
     renderModulesList();
-    showToast('Step 1 OK — ' + normModules.length + ' moduli normalizzati');
+    showToast('Step 1 OK — '+normModules.length+' moduli normalizzati');
 
-    // ════════════════════════════
-    //  STEP 2 — Testi e criteri
-    // ════════════════════════════
-    showToast('Step 2/2 - Generazione testi...', 'warning');
-
-    var modNorm = CURRENT_PROJECT.framework.content.syllabus_modules;
-    var univStr = modNorm.filter(function(m) { return m.coverage_type === 'universal'; })
-                         .map(function(m) { return m.name; }).join(', ') || 'nessuno';
-    var profStr = modNorm.filter(function(m) { return m.coverage_type === 'profile_dependent'; })
-                         .map(function(m) { return m.name; }).join(', ') || 'nessuno';
-    var discStr = modNorm.filter(function(m) { return m.coverage_type === 'discretionary'; })
-                         .map(function(m) { return m.name; }).join(', ') || 'nessuno';
-
-    var modText = '';
-    modNorm.forEach(function(m) {
-      var fs = cdls.map(function(c) {
-        return c + ':' + (m._freqs ? (m._freqs[c] || 0) : 0) + '%';
-      }).join(', ');
-      modText += '- "' + m.name + '" [' + m.coverage_type + '] ' + fs + '\n';
+    // STEP 2
+    showToast('Step 2/2 - Generazione testi...','warning');
+    var modNorm    = CURRENT_PROJECT.framework.content.syllabus_modules;
+    var univStr    = modNorm.filter(function(m){return m.coverage_type==='universal';}).map(function(m){return m.name;}).join(', ')||'nessuno';
+    var profStr    = modNorm.filter(function(m){return m.coverage_type==='profile_dependent';}).map(function(m){return m.name;}).join(', ')||'nessuno';
+    var discStr    = modNorm.filter(function(m){return m.coverage_type==='discretionary';}).map(function(m){return m.name;}).join(', ')||'nessuno';
+    var modText    = '';
+    modNorm.forEach(function(m){
+      var fs=cdls.map(function(c){return c+':'+(m._freqs?(m._freqs[c]||0):0)+'%';}).join(', ');
+      modText += '- "'+m.name+'" ['+m.coverage_type+'] '+fs+'\n';
     });
 
-    // Template moduli da arricchire
-    var modEnrTpl = modNorm.map(function(m, i) {
-      return '    {"name":"' + m.name + '","core_contents":"...","key_concepts":["...","...","..."]}' 
-             + (i < modNorm.length - 1 ? ',' : '');
+    var modEnrTpl = modNorm.map(function(m,i){
+      return '    {"name":"'+m.name+'","core_contents":"...","key_concepts":["...","...","..."]}' + (i<modNorm.length-1?',':'');
+    }).join('\n');
+    var profTpl = cdls.map(function(c,i){
+      return '    {"name":"'+c+'","priority_modules":"..."}' + (i<cdls.length-1?',':'');
     }).join('\n');
 
-    // Template profili — esempio esplicito multi-riga per guidare il modello
-    var profExamples = cdls.map(function(c) {
-      var topMods = modNorm
-        .filter(function(m) { return (m._freqs && m._freqs[c]) ? m._freqs[c] >= 50 : false; })
-        .sort(function(a, b) { return (b._freqs[c] || 0) - (a._freqs[c] || 0); })
-        .slice(0, 3)
-        .map(function(m) { return m.name + ' (' + (m._freqs[c] || 0) + '%)'; })
-        .join(', ');
-      var lowMods = modNorm
-        .filter(function(m) { return (m._freqs && m._freqs[c]) ? m._freqs[c] < 40 : true; })
-        .slice(0, 2)
-        .map(function(m) { return m.name; })
-        .join(', ');
-      return '    {"name":"' + c + '","priority_modules":"[ESEMPIO — sostituire] '
-        + 'Moduli prioritari: ' + (topMods || 'da determinare') + '. '
-        + 'Approccio didattico consigliato: empirico-sperimentale. '
-        + 'Meno rilevanti rispetto agli altri CdL: ' + (lowMods || 'nessuno') + '."}';
-    }).join(',\n');
+    var step2System = 'Sei un consulente editoriale specializzato in testi universitari italiani. '
+      + 'Produci testi operativi per un framework di analisi curricolare usato da promotori editoriali. '
+      + 'Scrivi in italiano professionale. Sii specifico, basati sui dati reali. '
+      + 'Rispondi SOLO con un oggetto JSON valido, senza markdown.';
 
-    // ── Costruzione chiavi criteri da moduli reali ──
-    // Estraiamo i 5 moduli universal più frequenti come base delle chiavi diagnostiche
-    var topUniversal = modNorm
-      .filter(function(m) { return m.coverage_type === 'universal'; })
-      .slice(0, 5);
-    var topProfDependent = modNorm
-      .filter(function(m) { return m.coverage_type === 'profile_dependent'; })
-      .slice(0, 3);
-    var criteriaExamples = topUniversal.concat(topProfDependent).slice(0, 5);
-    var criteriaKeysExample = criteriaExamples.map(function(m) {
-      // genera slug snake_case dal nome del modulo
-      var slug = m.name
-        .toLowerCase()
-        .replace(/[àáâã]/g, 'a').replace(/[èéêë]/g, 'e')
-        .replace(/[ìíîï]/g, 'i').replace(/[òóôõ]/g, 'o')
-        .replace(/[ùúûü]/g, 'u')
-        .replace(/[^a-z0-9\s]/g, '')
-        .trim()
-        .replace(/\s+/g, '_')
-        .substring(0, 40);
-      var freq = cdls.map(function(c) {
-        return c + '=' + (m._freqs ? (m._freqs[c] || 0) : '?') + '%';
-      }).join(', ');
-      return '    "' + slug + '": "Il programma distingue/approfondisce [aspetto specifico di '
-        + m.name + ']? [freq: ' + freq + ']"';
-    }).join(',\n');
-
-    var step2System =
-      'Sei un consulente editoriale specializzato in testi universitari italiani. '
-      + 'Produci testi operativi per un framework di analisi curricolare usato da promotori editoriali Zanichelli. '
-      + 'Scrivi in italiano professionale. Sii specifico, basati sui dati reali di frequenza. '
-      + 'Rispondi SOLO con un oggetto JSON valido, senza markdown, senza testo prima o dopo le parentesi graffe.';
-
-    var step2User =
-      'Framework: "' + fw.name + '" (SSD: ' + (CURRENT_PROJECT.materiaSsd || '') + ')\n'
-      + 'Campione: ' + cdls.map(function(c) { return c + ' n=' + (counts[c] || '?'); }).join(', ')
-      + ' — totale ' + totale + ' programmi\n\n'
-      + 'MODULI NORMALIZZATI:\n'
-      + 'Universal: ' + univStr + '\n'
-      + 'Profile-dependent: ' + profStr + '\n'
-      + 'Discretionary: ' + discStr + '\n\n'
-      + 'FREQUENZE DETTAGLIATE:\n' + modText + '\n'
-      + 'ARGOMENTI PIÙ DISCRIMINANTI (maggiore delta tra CdL):\n' + discText + '\n'
-      + 'NOTE NORMALIZZAZIONE: ' + (step1Result.normalization_notes || '') + '\n\n'
-
-      // ── REGOLE DETTAGLIATE ──
-      + '=== REGOLE OBBLIGATORIE ===\n\n'
-
-      + '1) context_strategy: MAX 2 righe. Indica il discriminante principale tra '
-      + cdls.join(' e ') + ' e cosa cerca un promotore editoriale per distinguere i testi adatti.\n\n'
-
-      + '2) modules_enriched: per OGNI modulo scrivi core_contents come testo narrativo di 2-3 '
-      + 'righe con teorie specifiche, autori rilevanti, approcci metodologici. '
-      + 'key_concepts: array di 3-5 termini tecnici precisi.\n\n'
-
-      + '3) evaluation_criteria: ESATTAMENTE 5 voci. '
-      + 'Le CHIAVI devono essere snake_case descrittive del contenuto disciplinare reale, '
-      + 'DERIVATE dai nomi dei moduli Universal e Profile-dependent (NON generiche come '
-      + '"criterio_1", "chiave_A", "slug_argomento"). '
-      + 'I VALORI devono essere domande diagnostiche verificabili, specifiche per ' + fw.name + '. '
-      + 'Esempi di CHIAVI CORRETTE per questa materia: '
-      + criteriaExamples.slice(0, 3).map(function(m) {
-          return '"' + m.name.toLowerCase().replace(/\s+/g, '_').substring(0, 30) + '"';
-        }).join(', ') + '. '
-      + 'Esempi di CHIAVI SBAGLIATE (da non usare mai): '
-      + '"chiave_descrittiva_A", "slug_argomento_1", "criterio_generico", "NOTA".\n\n'
-
-      + '4) program_profiles: per OGNI CdL scrivi un testo di 4-5 righe operative. '
-      + 'Il testo DEVE contenere obbligatoriamente: '
-      + '(a) i 3-4 moduli prioritari con la loro percentuale di frequenza es. "Memoria a lungo termine (85%)", '
-      + '(b) l\'approccio didattico da privilegiare nella scelta del testo, '
-      + '(c) i moduli meno rilevanti rispetto agli altri CdL con percentuale, '
-      + '(d) un consiglio operativo per il promotore. '
-      + 'Esempio di testo CORRETTO per un CdL: "Cruciali Basi biologiche del comportamento (88%) '
-      + 'e Memoria a lungo termine (81%). Privilegiare testi con forte ancoraggio neuroscentifico '
-      + 'e capitoli sperimentali. Meno rilevanti rispetto a LM-51: Storia della psicologia (32%) '
-      + 'e Psicopatologia (28%). Consiglio: verificare presenza di laboratori e casi clinici."\n\n'
-
-      // ── TEMPLATE JSON ──
-      + '=== JSON DA PRODURRE (rispetta ESATTAMENTE questa struttura) ===\n'
+    var step2User = 'Framework: "'+fw.name+'" (SSD: '+(CURRENT_PROJECT.materiaSsd||'')+')\n'
+      + 'Campione: '+cdls.map(function(c){return c+' n='+(counts[c]||'?');}).join(', ')+' - totale '+totale+' programmi\n\n'
+      + 'MODULI NORMALIZZATI:\nUniversal: '+univStr+'\nProfile-dependent: '+profStr+'\nDiscretionary: '+discStr+'\n\n'
+      + 'FREQUENZE:\n'+modText+'\n'
+      + 'DISCRIMINANTI:\n'+discText+'\n'
+      + 'NOTE: '+(step1Result.normalization_notes||'')+'\n\n'
+      + 'ESEMPI:\n'
+      + 'context_strategy BUONA: "Corso avanzato per Economisti. Discriminante: rigore matematico."\n'
+      + 'core_contents BUONO: "Attenzione selettiva: teorie del filtro (Broadbent, Treisman), modelli a risorse limitate."\n'
+      + 'evaluation_criterion BUONO: "Il programma distingue tra memoria di lavoro (Baddeley) e LTM?"\n\n'
+      + 'JSON ESATTO:\n'
       + '{\n'
-      + '  "context_strategy": "testo operativo max 2 righe",\n'
-      + '  "modules_enriched": [\n' + modEnrTpl + '\n  ],\n'
+      + '  "context_strategy": "MAX 2 righe operative. Discriminante principale. Differenze tra '+cdls.join(' e ')+'.",\n'
+      + '  "modules_enriched": [\n'+modEnrTpl+'\n  ],\n'
+      + '  "program_profiles": [\n'+profTpl+'\n  ]\n'
       + '  "evaluation_criteria": {\n'
-      + criteriaKeysExample + '\n'
+      + '    "slug_argomento_1": "Il testo copre [aspetto specifico di ' + fwSubject + ']?\n'
+      + '    "slug_argomento_2": "domanda diagnostica specifica",\n'
+      + '    "slug_argomento_3": "domanda diagnostica specifica",\n'
+      + '    "slug_argomento_4": "domanda diagnostica specifica",\n'
+      + '    "slug_argomento_5": "domanda diagnostica specifica"\n'
       + '  },\n'
-      + '  "program_profiles": [\n' + profExamples + '\n  ]\n'
-      + '}';
+      + '}\n\n'
+      + 'REGOLE:\n'
+      + '- context_strategy: max 2 righe\n'
+      + '- core_contents: narrativo, min 2 righe, con teorie e autori\n'
+      + '- evaluation_criteria: 5 chiavi snake_case DESCRITTIVE, domande verificabili\n'
+      + '- program_profiles: testo operativo di 3-4 righe per un promotore editoriale sul campo. '
+      + 'Deve dire: (1) quali moduli sono prioritari con %, (2) quale approccio didattico '
+      + 'privilegiare nella scelta del testo, (3) quali moduli sono meno rilevanti rispetto '
+      + 'agli altri CdL. Esempio: "Cruciali Metodi di ricerca (90%) e Memoria a lungo termine '
+      + '(75%). Privilegiare testi con approccio empirico-sperimentale. Meno rilevanti '
+      + 'rispetto a L-24: Storia della psicologia e Neuroscienze cognitive."\n'
+      + '- SOLO JSON, nessun testo prima o dopo';
 
-    var r2 = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SETTINGS.apiKey },
-      body: JSON.stringify({
-        model: SETTINGS.model,
-        messages: [
-          { role: 'system', content: step2System },
-          { role: 'user', content: step2User }
-        ],
-        temperature: 0.3,
-        max_tokens: 3500    // aumentato per profili più lunghi
-      })
+    var r2 = await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SETTINGS.apiKey},
+      body:JSON.stringify({model:SETTINGS.model,
+        messages:[{role:'system',content:step2System},{role:'user',content:step2User}],
+        temperature:0.3,max_tokens:2500})
     });
-    if (!r2.ok) throw new Error('API Step2 error: ' + r2.status);
+    if (!r2.ok) throw new Error('API Step2 error: '+r2.status);
     var d2   = await r2.json();
     var raw2 = d2.choices[0].message.content.trim();
     var step2Result;
-    try {
-      var m2 = raw2.match(/\{[\s\S]*\}/);
-      step2Result = JSON.parse(m2 ? m2[0] : raw2);
-    } catch(e) {
-      throw new Error('Step2 risposta non valida: ' + raw2.substring(0, 200));
-    }
+    try { var m2=raw2.match(/\{[\s\S]*\}/); step2Result=JSON.parse(m2?m2[0]:raw2); }
+    catch(e){ throw new Error('Step2 risposta non valida: '+raw2.substring(0,200)); }
 
-    // ── Applica context_strategy ──────────────
     if (step2Result.context_strategy) {
       CURRENT_PROJECT.framework.context_strategy = step2Result.context_strategy;
       var csEl = document.getElementById('fwContextStrategy');
       if (csEl) csEl.value = step2Result.context_strategy;
     }
-
-    // ── Applica moduli arricchiti ─────────────
     if (step2Result.modules_enriched && step2Result.modules_enriched.length) {
-      step2Result.modules_enriched.forEach(function(en, i) {
+      step2Result.modules_enriched.forEach(function(en,i){
         if (CURRENT_PROJECT.framework.content.syllabus_modules[i]) {
-          if (en.core_contents) {
-            CURRENT_PROJECT.framework.content.syllabus_modules[i].core_contents = [en.core_contents];
-          }
-          if (en.key_concepts && en.key_concepts.length) {
-            CURRENT_PROJECT.framework.content.syllabus_modules[i].key_concepts = en.key_concepts;
-          }
+          if (en.core_contents) CURRENT_PROJECT.framework.content.syllabus_modules[i].core_contents=[en.core_contents];
+          if (en.key_concepts&&en.key_concepts.length) CURRENT_PROJECT.framework.content.syllabus_modules[i].key_concepts=en.key_concepts;
         }
       });
       renderModulesList();
     }
-
-    // ── Applica evaluation_criteria (filtro robusto) ──
-    if (step2Result.evaluation_criteria && typeof step2Result.evaluation_criteria === 'object') {
-      var cleaned = {};
-
-      // Pattern di chiavi generiche/template da scartare (lista exhaustiva)
-      var badPatterns = [
-        /^chiave_/i,
-        /^slug_/i,
-        /^criterio_/i,
-        /^argomento_/i,
-        /^campo_/i,
-        /^esempio_/i,
-        /^key_/i,
-        /^criterion_/i,
-        /^_/,                        // chiavi che iniziano con _
-        /^(NOTA|nota|note|NOTE)$/,
-        /^[a-z]$/,                   // chiave di un solo carattere
-        /^[A-Z]$/,
-        /\[SOSTITUIRE\]/i,
-        /\[esempio\]/i
-      ];
-
-      var isBadKey = function(k) {
-        if (!k || typeof k !== 'string') return true;
-        return badPatterns.some(function(p) { return p.test(k); });
-      };
-
-      Object.entries(step2Result.evaluation_criteria).forEach(function(entry) {
-        var k = entry[0];
-        var v = entry[1];
-        if (
-          !isBadKey(k)
-          && typeof v === 'string'
-          && v.trim().length > 8          // valore non vuoto né placeholder
-          && !v.includes('[SOSTITUIRE')
-          && !v.includes('[esempio')
-        ) {
-          cleaned[k] = v.trim();
-        }
+    if (step2Result.evaluation_criteria && Object.keys(step2Result.evaluation_criteria).length) {
+      var cleaned={};
+      Object.entries(step2Result.evaluation_criteria).forEach(function(e){
+        var k=e[0],v=e[
+        var bad = (k.matsempio_/) || k.match(/^chiave_descrittiva_[A-Z]$/) || k === 'NOTA' || k === 'nota' || k === '_note');
+        if (k && !bad && v && v.length>5) cleaned[k]=v;
       });
-
-      // Se il filtro ha eliminato tutto (modello refrattario),
-      // rigenera le chiavi dai nomi dei moduli in modo deterministico
-      if (Object.keys(cleaned).length < 3) {
-        criteriaExamples.slice(0, 5).forEach(function(m) {
-          var slug = m.name
-            .toLowerCase()
-            .replace(/[àáâã]/g, 'a').replace(/[èéêë]/g, 'e')
-            .replace(/[ìíîï]/g, 'i').replace(/[òóôõ]/g, 'o')
-            .replace(/[ùúûü]/g, 'u')
-            .replace(/[^a-z0-9\s]/g, '')
-            .trim().replace(/\s+/g, '_').substring(0, 40);
-          var freq = cdls.map(function(c) {
-            return c + '=' + (m._freqs ? (m._freqs[c] || 0) : '?') + '%';
-          }).join(', ');
-          // Usa il valore della AI se la chiave corrisponde, altrimenti placeholder
-          var aiValue = step2Result.evaluation_criteria[slug]
-            || 'Il programma approfondisce ' + m.name + '? [' + freq + ']';
-          cleaned[slug] = aiValue;
-        });
-      }
-
-      CURRENT_PROJECT.framework.content.evaluation_criteria = cleaned;
+      CURRENT_PROJECT.framework.content.evaluation_criteria =
+        Object.keys(cleaned).length ? cleaned : step2Result.evaluation_criteria;
       renderEvaluationCriteria();
-    }
 
-    // ── Applica program_profiles ──────────────
     if (step2Result.program_profiles && step2Result.program_profiles.length) {
-      step2Result.program_profiles.forEach(function(pp, i) {
+      step2Result.program_profiles.forEach(function(pp,i){
         if (CURRENT_PROJECT.framework.content.program_profiles[i]) {
-          if (pp.priority_modules) {
-            CURRENT_PROJECT.framework.content.program_profiles[i].priority_modules = pp.priority_modules;
-          }
-          if (pp.name) {
-            CURRENT_PROJECT.framework.content.program_profiles[i].name = pp.name;
-          }
+          if (pp.priority_modules) CURRENT_PROJECT.framework.content.program_profiles[i].priority_modules=pp.priority_modules;
+          if (pp.name)             CURRENT_PROJECT.framework.content.program_profiles[i].name=pp.name;
         }
       });
       renderProfilesList();
     }
-
+  }
     refreshJsonPreview();
-    autoSaveProject();
-    showToast('✅ Framework completato — pronto per export!');
+    showToast('Framework completato - pronto per export!');
 
   } catch(e) {
-    console.error('generateWithAI error:', e);
-    showToast('❌ Errore: ' + e.message, 'error');
+    console.error('generateWithAI error:',e);
+    showToast('Errore: '+e.message,'error');
   } finally {
     btn.disabled        = false;
     label.style.display = 'none';
+    autoSaveProject();
   }
 }
+
 // ════════════════════════════════════════════════
 //  EXPORT
 // ════════════════════════════════════════════════

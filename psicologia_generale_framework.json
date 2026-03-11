@@ -1,128 +1,110 @@
 {
   "id": "psicologia_generale_framework",
   "name": "Psicologia Generale",
-  "subject": "psicologia",
-  "context_strategy": "Materia dove la distinzione tra approcci teorici è cruciale. Discriminante principale tra L-19/LM-85bis e L-24 è l'enfasi su aspetti storici e cognitivi. Distinguere tra approccio più tradizionale (L-19/LM-85bis) e approccio più contemporaneo (L-24).",
+  "subject": "psicologia_generale",
+  "context_strategy": "Il principale discriminante tra L-24 e L-19/LM-85bis è l'approfondimento di temi come l'apprendimento classico e operante, dove L-24 mostra una maggiore frequenza. I promotori editoriali devono cercare testi che evidenzino le differenze nei moduli e nelle metodologie didattiche per ciascun corso di laurea.",
   "content": {
     "target_degrees": [
-      "L-19/LM-85bis",
-      "L-24"
+      "L-24",
+      "L-19/LM-85bis"
     ],
     "evaluation_criteria": {
-      "distinzione_memoria": "Il programma distingue esplicitamente tra memoria di lavoro e memoria a lungo termine?",
-      "approccio_metodologico": "Il programma include una varietà di metodi di ricerca, sia qualitativi che quantitativi?",
-      "copertura_emozioni": "Il programma affronta in modo approfondito il tema delle emozioni e dei processi affettivi?",
-      "integrazione_storia": "Il programma integra la storia della psicologia con le teorie contemporanee?",
-      "analisi_pensiero": "Il programma analizza in modo critico i processi di pensiero e ragionamento?"
+      "metodi_di_ricerca_in_psicologia": "Il programma distingue/approfondisce l'uso di metodi quantitativi e qualitativi nella ricerca psicologica? [freq: L-24=89%, L-19/LM-85bis=90%]",
+      "memoria_a_lungo_termine": "Il programma distingue/approfondisce i processi di codifica e recupero della memoria? [freq: L-24=75%, L-19/LM-85bis=75%]",
+      "emozioni_e_processi_affettivi": "Il programma distingue/approfondisce le teorie delle emozioni e il loro impatto sul comportamento? [freq: L-24=85%, L-19/LM-85bis=75%]",
+      "apprendimento_classico_e_operante": "Il programma distingue/approfondisce le teorie di Pavlov e Skinner sull'apprendimento? [freq: L-24=61%, L-19/LM-85bis=45%]",
+      "percezione_visiva": "Il programma distingue/approfondisce i processi di percezione visiva e le teorie correlate? [freq: L-24=74%, L-19/LM-85bis=73%]"
     },
     "program_profiles": [
       {
-        "name": "L-19/LM-85bis",
-        "priority_modules": "Forte enfasi su Storia della psicologia (63%) e Motivazione (67%). Approccio tradizionale con focus su teorie classiche e metodi di ricerca."
+        "name": "L-24",
+        "priority_modules": "Moduli prioritari: Metodi di ricerca in psicologia (89%), Emozioni e processi affettivi (85%), Storia della psicologia (76%). Approccio didattico consigliato: empirico-sperimentale. Meno rilevanti rispetto agli altri CdL: Apprendimento classico e operante (61%). Consiglio: privilegiare testi che integrano teoria e pratica, con casi studio."
       },
       {
-        "name": "L-24",
-        "priority_modules": "Maggiore attenzione a Pensiero e ragionamento (68%) e Linguaggio e cognizione (61%). Approccio contemporaneo con integrazione di teorie moderne e applicazioni pratiche."
+        "name": "L-19/LM-85bis",
+        "priority_modules": "Moduli prioritari: Metodi di ricerca in psicologia (90%), Memoria a lungo termine (75%), Emozioni e processi affettivi (75%). Approccio didattico consigliato: empirico-sperimentale. Meno rilevanti rispetto agli altri CdL: Apprendimento classico e operante (45%). Consiglio: cercare testi che enfatizzano l'applicazione pratica delle teorie psicologiche."
       }
     ],
     "syllabus_modules": [
       {
-        "name": "Emozioni e processi affettivi",
-        "core_contents": "Questo modulo esplora le teorie delle emozioni, come quelle di James-Lange e Cannon-Bard, analizzando il ruolo delle emozioni nei processi decisionali e nelle interazioni sociali. Viene discusso anche il modello di emozioni di Scherer, che integra aspetti cognitivi e fisiologici.",
+        "name": "Metodi di ricerca in psicologia",
+        "core_contents": "Questo modulo esplora le tecniche di raccolta e analisi dei dati in psicologia, includendo approcci quantitativi e qualitativi. Autori come Creswell e Robson offrono fondamentali contributi metodologici. Si enfatizza l'importanza della validità e affidabilità degli strumenti di ricerca.",
         "key_concepts": [
-          "teoria di James-Lange",
-          "modello di Scherer",
+          "validità",
+          "affidabilità",
+          "metodologia qualitativa"
+        ]
+      },
+      {
+        "name": "Memoria a lungo termine",
+        "core_contents": "Il modulo analizza i processi di codifica, immagazzinamento e recupero delle informazioni. Teorie di autori come Atkinson e Shiffrin sono fondamentali, insieme a studi recenti sulla neurobiologia della memoria. Viene considerato anche il ruolo delle emozioni nella memoria.",
+        "key_concepts": [
+          "codifica",
+          "immagazzinamento",
+          "recupero"
+        ]
+      },
+      {
+        "name": "Emozioni e processi affettivi",
+        "core_contents": "Si approfondiscono le teorie delle emozioni, come quelle di Ekman e James-Lange, e i loro effetti sul comportamento umano. Viene analizzato il ruolo delle emozioni nei processi decisionali e nelle relazioni interpersonali, con un focus sulle neuroscienze affettive.",
+        "key_concepts": [
+          "teoria delle emozioni",
+          "neuroscienze affettive",
           "processi decisionali"
         ]
       },
       {
-        "name": "Memoria",
-        "core_contents": "Il modulo analizza le diverse tipologie di memoria, con particolare attenzione alla memoria a breve termine e alla memoria a lungo termine, includendo le teorie di Baddeley e Tulving. Viene anche trattato il concetto di memoria autobiografica e il suo impatto sull'identità personale.",
+        "name": "Apprendimento classico e operante",
+        "core_contents": "Questo modulo tratta le basi teoriche dell'apprendimento, con focus su Pavlov e Skinner. Si analizzano le applicazioni pratiche di queste teorie nel contesto educativo e terapeutico, evidenziando le tecniche di condizionamento.",
         "key_concepts": [
-          "memoria a breve termine",
-          "memoria autobiografica",
-          "teoria di Baddeley"
+          "condizionamento classico",
+          "condizionamento operante",
+          "teoria dell'apprendimento"
         ]
       },
       {
-        "name": "Percezione",
-        "core_contents": "Questo modulo si concentra sui processi percettivi, analizzando le teorie della percezione visiva e uditiva, come il modello di Gestalt. Viene discusso il ruolo dell'attenzione nella percezione e come le aspettative influenzano l'interpretazione sensoriale.",
+        "name": "Percezione visiva",
+        "core_contents": "Il modulo esplora i processi attraverso cui gli individui interpretano le informazioni visive. Si discutono teorie come quella della Gestalt e studi sulla percezione del colore e del movimento. Viene analizzato anche il ruolo della percezione nella cognizione.",
         "key_concepts": [
+          "percezione",
           "teoria della Gestalt",
-          "attenzione percettiva",
-          "processi sensoriali"
+          "cognizione"
         ]
       },
       {
-        "name": "Attenzione",
-        "core_contents": "Il modulo esplora le teorie dell'attenzione selettiva e divisa, con riferimento ai modelli di Broadbent e Treisman. Viene analizzato come l'attenzione influisce sull'elaborazione delle informazioni e come può essere misurata attraverso vari paradigmi sperimentali.",
+        "name": "Attenzione selettiva",
+        "core_contents": "Si analizzano i meccanismi che regolano l'attenzione e come essa influenzi la percezione e l'apprendimento. Teorie di autori come Broadbent e Kahneman sono fondamentali per comprendere i processi attentivi e le loro applicazioni pratiche.",
         "key_concepts": [
-          "attenzione selettiva",
-          "modello di Treisman",
-          "paradigmi sperimentali"
-        ]
-      },
-      {
-        "name": "Metodi di ricerca in psicologia",
-        "core_contents": "Questo modulo introduce i principali metodi di ricerca utilizzati in psicologia, compresi gli approcci qualitativi e quantitativi. Viene discusso il valore della ricerca empirica e l'importanza della validità e della affidabilità degli strumenti di misura.",
-        "key_concepts": [
-          "metodi qualitativi",
-          "metodi quantitativi",
-          "validità e affidabilità"
+          "attenzione",
+          "processi attentivi",
+          "teoria di Kahneman"
         ]
       },
       {
         "name": "Motivazione",
-        "core_contents": "Il modulo analizza le teorie della motivazione, inclusi i modelli di Maslow e Herzberg. Viene discusso come la motivazione influisce sul comportamento umano e come può essere stimolata in contesti educativi e lavorativi.",
+        "core_contents": "Il modulo esamina le teorie motivazionali, come la teoria dell'autodeterminazione di Deci e Ryan, e il loro impatto sul comportamento umano. Si discute il ruolo della motivazione intrinseca ed estrinseca nell'apprendimento e nel lavoro.",
         "key_concepts": [
-          "teoria di Maslow",
-          "teoria di Herzberg",
-          "motivazione intrinseca ed estrinseca"
-        ]
-      },
-      {
-        "name": "Linguaggio e cognizione",
-        "core_contents": "Questo modulo esplora il legame tra linguaggio e processi cognitivi, analizzando le teorie di Chomsky e il ruolo del linguaggio nel pensiero. Viene discusso come il linguaggio influisce sulla percezione e sull'interazione sociale.",
-        "key_concepts": [
-          "teoria di Chomsky",
-          "linguaggio e pensiero",
-          "interazione sociale"
+          "motivazione intrinseca",
+          "motivazione estrinseca",
+          "teoria dell'autodeterminazione"
         ]
       },
       {
         "name": "Storia della psicologia",
-        "core_contents": "Il modulo fornisce una panoramica delle principali scuole di pensiero in psicologia, dalle origini con Wundt fino alle teorie contemporanee. Viene analizzato l'evoluzione delle idee psicologiche e il loro impatto sulla pratica clinica e sulla ricerca.",
+        "core_contents": "Questo modulo ripercorre le tappe fondamentali della psicologia, dalle origini filosofiche alle scuole di pensiero contemporanee. Si analizzano contributi di autori come Wundt e Freud, evidenziando l'evoluzione delle teorie psicologiche nel tempo.",
         "key_concepts": [
+          "storia della psicologia",
           "scuole di pensiero",
-          "evoluzione delle idee",
-          "impatto sulla pratica"
-        ]
-      },
-      {
-        "name": "Apprendimento",
-        "core_contents": "Questo modulo analizza i principali modelli di apprendimento, tra cui il condizionamento classico e operante. Viene discusso il ruolo dell'apprendimento sociale e le implicazioni per l'educazione e la formazione.",
-        "key_concepts": [
-          "condizionamento classico",
-          "apprendimento sociale",
-          "modelli educativi"
-        ]
-      },
-      {
-        "name": "Pensiero e ragionamento",
-        "core_contents": "Il modulo esplora i processi di pensiero e ragionamento, analizzando le teorie di Kahneman e Tversky. Viene discusso il ruolo dei bias cognitivi e come influenzano il processo decisionale.",
-        "key_concepts": [
-          "teoria dei bias cognitivi",
-          "processo decisionale",
-          "ragionamento logico"
+          "Wundt"
         ]
       },
       {
         "name": "Basi biologiche del comportamento",
-        "core_contents": "Questo modulo si concentra sulle basi neurologiche e biologiche del comportamento umano, analizzando il ruolo del sistema nervoso e dei neurotrasmettitori. Viene discusso come le influenze genetiche e ambientali interagiscono nel determinare il comportamento.",
+        "core_contents": "Il modulo esplora le fondamenta biologiche del comportamento umano, analizzando il sistema nervoso e il ruolo dei neurotrasmettitori. Si discutono anche le basi genetiche e ambientali del comportamento, con riferimenti a studi neuroscientifici.",
         "key_concepts": [
-          "sistema nervoso",
           "neurotrasmettitori",
-          "influenze genetiche"
+          "genetica del comportamento",
+          "sistema nervoso"
         ]
       }
     ]
