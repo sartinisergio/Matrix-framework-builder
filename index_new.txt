@@ -3032,7 +3032,17 @@ function setupBookDropZone() {
     else showToast('⚠️ Carica un file PDF', 'warning');
   });
 }
-
+async function extractFullPdfText(file) {
+  var buf  = await file.arrayBuffer();
+  var pdf  = await pdfjsLib.getDocument({data: buf}).promise;
+  var text = '';
+  for (var p = 1; p <= pdf.numPages; p++) {
+    var page    = await pdf.getPage(p);
+    var content = await page.getTextContent();
+    text += content.items.map(function(i){ return i.str; }).join(' ') + '\n';
+  }
+  return text.trim();
+}
 async function handleBookPdf(file) {
   if (!file) return;
   var statusEl = document.getElementById('bookPdfStatus');
@@ -3044,7 +3054,7 @@ async function handleBookPdf(file) {
     + '</div>';
 
   try {
-    var text = await extractTextFromPdf(file);
+    var text = await extractFullPdfText(file);
 
     // Verifica se il testo è sufficiente
     if (!text || text.length < 100) {
@@ -3101,8 +3111,6 @@ async function generateBookJson(inputText) {
   }
 
   try {
-    setProgress(20, 'Analisi dell\'indice in corso...');
-
     var meta = {
       id:        document.getElementById('bookId').value.trim(),
       title:     document.getElementById('bookTitle').value.trim(),
@@ -3114,49 +3122,23 @@ async function generateBookJson(inputText) {
 
     var systemPrompt =
       'Sei un esperto di editoria universitaria italiana. '
-      + 'Ricevi il testo grezzo di un indice di un manuale universitario, '
-      + 'che potrebbe essere mal formattato o disordinato a causa dell\'estrazione da PDF. '
-      + 'Il tuo compito è ricostruire la struttura gerarchica esatta: '
-      + 'capitoli e relative sezioni/paragrafi con i numeri di pagina. '
+      + 'Ricevi il testo grezzo di un indice di un manuale universitario. '
       + 'Rispondi SOLO con un oggetto JSON valido, senza markdown, senza spiegazioni.';
 
-    var userPrompt =
-      'Metadati del volume:\n'
-      + '- Titolo: ' + meta.title + '\n'
-      + '- Autore: ' + meta.author + '\n'
-      + '- Materia: ' + meta.subject + '\n\n'
-      + 'TESTO GREZZO DELL\'INDICE:\n'
-      + inputText.substring(0, 8000) + '\n\n'
+    // ── CHIAMATA 1: estrai lista capitoli ──────────────
+    setProgress(15, 'Step 1/2 — Estrazione capitoli...');
+
+    var prompt1 =
+      'Questo è il testo grezzo dell\'indice di "' + meta.title + '" di ' + meta.author + '.\n\n'
+      + 'TESTO:\n' + inputText.substring(0, 25000) + '\n\n'
       + 'ISTRUZIONI:\n'
-      + '1. Ricostruisci la struttura gerarchica ignorando artefatti di formattazione\n'
-      + '2. Ogni capitolo ha: number (intero), title (stringa), page_start (intero), sections (array)\n'
-      + '3. Ogni sezione ha: number (stringa es. "1.1"), title (stringa), page_start (intero)\n'
-      + '4. Se il numero di pagina non è leggibile usa 0\n'
-      + '5. Ignora prefazioni, bibliografie, indici analitici — solo i capitoli principali\n'
-      + '6. Normalizza i titoli in italiano corretto\n\n'
-      + 'JSON atteso:\n'
-      + '{\n'
-      + '  "id": "' + meta.id + '",\n'
-      + '  "title": "' + meta.title + '",\n'
-      + '  "author": "' + meta.author + '",\n'
-      + '  "publisher": "' + meta.publisher + '",\n'
-      + '  "subject": "' + meta.subject + '",\n'
-      + '  "type": "' + meta.type + '",\n'
-      + '  "chapters": [\n'
-      + '    {\n'
-      + '      "number": 1,\n'
-      + '      "title": "...",\n'
-      + '      "page_start": 1,\n'
-      + '      "sections": [\n'
-      + '        {"number": "1.1", "title": "...", "page_start": 1}\n'
-      + '      ]\n'
-      + '    }\n'
-      + '  ]\n'
-      + '}';
+      + '1. Estrai SOLO i capitoli principali (non le sezioni)\n'
+      + '2. Per ogni capitolo: number (intero), title (stringa), page_start (intero)\n'
+      + '3. Ignora prefazioni, bibliografie, indici analitici\n'
+      + '4. Rispondi SOLO con questo JSON:\n'
+      + '{"chapters":[{"number":1,"title":"...","page_start":1}]}';
 
-    setProgress(50, 'Chiamata AI in corso...');
-
-    var resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    var r1 = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3166,44 +3148,103 @@ async function generateBookJson(inputText) {
         model: SETTINGS.model,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user',   content: userPrompt }
+          { role: 'user',   content: prompt1 }
         ],
         temperature: 0.1,
-        max_tokens: 4000
+        max_tokens: 2000
       })
     });
-
-    if (!resp.ok) throw new Error('API error: ' + resp.status);
-    var data = await resp.json();
-    var raw  = data.choices[0].message.content.trim();
-
-    setProgress(80, 'Parsing JSON...');
-
-    var parsed;
+    if (!r1.ok) throw new Error('API Step1 error: ' + r1.status);
+    var d1  = await r1.json();
+    var raw1 = d1.choices[0].message.content.trim();
+    var step1Result;
     try {
-      var match = raw.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(match ? match[0] : raw);
+      var m1 = raw1.match(/\{[\s\S]*\}/);
+      step1Result = JSON.parse(m1 ? m1[0] : raw1);
     } catch(e) {
-      throw new Error('Risposta AI non valida: ' + raw.substring(0, 200));
+      throw new Error('Step1 risposta non valida: ' + raw1.substring(0, 200));
+    }
+    var chapters = step1Result.chapters || [];
+    if (!chapters.length) throw new Error('Nessun capitolo trovato');
+    setProgress(40, 'Trovati ' + chapters.length + ' capitoli — Step 2/2 sezioni...');
+
+    // ── CHIAMATA 2: estrai sezioni per ogni capitolo ──
+    // Dividiamo i capitoli in gruppi da 6 per non superare i token
+    var chunkSize = 6;
+    var allChaptersWithSections = [];
+
+    for (var ci = 0; ci < chapters.length; ci += chunkSize) {
+      var chunk = chapters.slice(ci, ci + chunkSize);
+      var pct   = 40 + Math.round((ci / chapters.length) * 55);
+      setProgress(pct, 'Sezioni capitoli ' + (ci+1) + '-' + Math.min(ci+chunkSize, chapters.length) + '...');
+
+      var chapterList = chunk.map(function(c) {
+        return 'Capitolo ' + c.number + ': "' + c.title + '"';
+      }).join('\n');
+
+      var prompt2 =
+        'Testo indice di "' + meta.title + '":\n\n'
+        + inputText.substring(0, 25000) + '\n\n'
+        + 'Estrai le sezioni SOLO per questi capitoli:\n'
+        + chapterList + '\n\n'
+        + 'Per ogni sezione: number (stringa OBBLIGATORIAMENTE nel formato "N.X" es. "9.1", "9.2"), title (stringa in italiano con prima lettera maiuscola e resto minuscolo), page_start (intero).\n'
+        + 'Ignora "Cartella", "ABC di Istologia", "TAVOLA" — solo sezioni principali.\n'
+        + 'Rispondi SOLO con questo JSON:\n'
+        + '{"chapters":[{"number":1,"title":"...","page_start":1,"sections":[{"number":"1.1","title":"...","page_start":1}]}]}';
+
+      var r2 = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + SETTINGS.apiKey
+        },
+        body: JSON.stringify({
+          model: SETTINGS.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user',   content: prompt2 }
+          ],
+          temperature: 0.1,
+          max_tokens: 3000
+        })
+      });
+      if (!r2.ok) throw new Error('API Step2 error: ' + r2.status);
+      var d2   = await r2.json();
+      var raw2 = d2.choices[0].message.content.trim();
+      try {
+        var m2 = raw2.match(/\{[\s\S]*\}/);
+        var step2Result = JSON.parse(m2 ? m2[0] : raw2);
+        allChaptersWithSections = allChaptersWithSections.concat(step2Result.chapters || []);
+      } catch(e) {
+        // Se il parsing fallisce per questo chunk, aggiungi i capitoli senza sezioni
+        chunk.forEach(function(c) {
+          allChaptersWithSections.push({ number: c.number, title: c.title, page_start: c.page_start, sections: [] });
+        });
+      }
     }
 
-    // Assicura che i metadati siano quelli inseriti dall'utente
-    parsed.id        = meta.id;
-    parsed.title     = meta.title;
-    parsed.author    = meta.author;
-    parsed.publisher = meta.publisher;
-    parsed.subject   = meta.subject;
-    parsed.type      = meta.type;
+    // ── Assembla il JSON finale ────────────────────────
+    setProgress(98, 'Assemblaggio JSON finale...');
 
-    BOOK_JSON = parsed;
+    var finalJson = {
+      id:        meta.id,
+      title:     meta.title,
+      author:    meta.author,
+      publisher: meta.publisher,
+      subject:   meta.subject,
+      type:      meta.type,
+      chapters:  allChaptersWithSections.sort(function(a,b){ return a.number - b.number; })
+    };
 
+    BOOK_JSON = finalJson;
     setProgress(100, 'Completato!');
+
     document.getElementById('bookJsonPreview').textContent =
       JSON.stringify(BOOK_JSON, null, 2);
 
     BOOK_STEP = 3;
     updateBookUI();
-    showToast('✅ JSON generato — ' + (parsed.chapters || []).length + ' capitoli');
+    showToast('✅ JSON generato — ' + allChaptersWithSections.length + ' capitoli');
 
   } catch(e) {
     console.error('generateBookJson error:', e);
@@ -3213,7 +3254,6 @@ async function generateBookJson(inputText) {
     btn.disabled = false;
   }
 }
-
 // ── Download e copia ─────────────────────────
 function downloadBookJson() {
   if (!BOOK_JSON) return;
