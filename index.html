@@ -213,6 +213,13 @@ table.freq-table tr:hover td{background:#f9fafb;}
   .projects-grid{grid-template-columns:1fr;}
   #dashboardView{padding:16px;}
 }
+/* ── MODULO INDICE MANUALE ── */
+.book-card{background:white;border-radius:14px;padding:22px;box-shadow:var(--shadow);border:2px solid transparent;cursor:pointer;transition:all 0.2s;}
+.book-card:hover{border-color:#f59e0b;transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,0.15);}
+.book-card-new{border:2.5px dashed var(--gray-2);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;color:var(--gray-3);}
+.book-card-new:hover{border-color:#f59e0b;color:#f59e0b;background:#fffbeb;}
+.tab-btn{padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--gray-2);background:white;color:var(--text-2);transition:all 0.2s;}
+.tab-btn.active{background:#f59e0b;color:white;border-color:#f59e0b;}
 </style>
 </head>
 <body>
@@ -242,14 +249,19 @@ table.freq-table tr:hover td{background:#f9fafb;}
 ════════════════════════════════════════════════ -->
 <div id="dashboardView">
   <div class="dashboard-header">
-    <div>
-      <h1><i class="fas fa-sitemap" style="color:var(--green)"></i> I miei progetti</h1>
-      <p>Ogni progetto è un censimento indipendente per materia e classi di laurea.</p>
-    </div>
+  <div>
+    <h1><i class="fas fa-sitemap" style="color:var(--green)"></i> I miei progetti</h1>
+    <p>Ogni progetto è un censimento indipendente per materia e classi di laurea.</p>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn" style="background:#f59e0b;color:white" onclick="openBookIndexModal()">
+      <i class="fas fa-book"></i> JSON indice manuale
+    </button>
     <button class="btn btn-primary" onclick="openNewProjectModal()">
       <i class="fas fa-plus"></i> Nuovo progetto
     </button>
   </div>
+</div>
   <div class="projects-grid" id="projectsGrid">
     <!-- popolato da JS -->
   </div>
@@ -834,10 +846,61 @@ const MATERIE = [
 ];
 
 const CDL_LIST = [
-  { id:'L-24',          label:'L-24 Scienze e Tecniche Psicologiche' },
-  { id:'L-19/LM-85bis', label:'L-19 / LM-85bis Scienze Educazione e Form. Primaria' },
-  { id:'LM-51',         label:'LM-51 Psicologia' },
-  { id:'ALTRO',         label:'Altra classe di laurea' }
+  // ── LAUREE TRIENNALI (L-) ──
+  { id:'L-1',      label:'L-1 — Beni Culturali' },
+  { id:'L-2',      label:'L-2 — Biotecnologie' },
+  { id:'L-3',      label:'L-3 — Arti Figurative, Musica, Spettacolo e Moda' },
+  { id:'L-4',      label:'L-4 — Disegno Industriale' },
+  { id:'L-5',      label:'L-5 — Filosofia' },
+  { id:'L-6',      label:'L-6 — Geografia' },
+  { id:'L-7',      label:'L-7 — Ingegneria Civile e Ambientale' },
+  { id:'L-8',      label:'L-8 — Ingegneria dell\'Informazione' },
+  { id:'L-9',      label:'L-9 — Ingegneria Industriale' },
+  { id:'L-10',     label:'L-10 — Lettere' },
+  { id:'L-11',     label:'L-11 — Lingue e Culture Moderne' },
+  { id:'L-12',     label:'L-12 — Mediazione Linguistica' },
+  { id:'L-13',     label:'L-13 — Scienze Biologiche' },
+  { id:'L-14',     label:'L-14 — Scienze dei Servizi Giuridici' },
+  { id:'L-15',     label:'L-15 — Scienze del Turismo' },
+  { id:'L-16',     label:'L-16 — Scienze dell\'Amministrazione e dell\'Organizzazione' },
+  { id:'L-17',     label:'L-17 — Scienze dell\'Architettura' },
+  { id:'L-18',     label:'L-18 — Scienze dell\'Economia e della Gestione Aziendale' },
+  { id:'L-19',     label:'L-19 — Scienze dell\'Educazione e della Formazione' },
+  { id:'L-20',     label:'L-20 — Scienze della Comunicazione' },
+  { id:'L-21',     label:'L-21 — Scienze della Pianificazione Territoriale e Ambientale' },
+  { id:'L-22',     label:'L-22 — Scienze delle Attività Motorie e Sportive' },
+  { id:'L-23',     label:'L-23 — Scienze e Tecniche dell\'Edilizia' },
+  { id:'L-24',     label:'L-24 — Scienze e Tecniche Psicologiche' },
+  { id:'L-25',     label:'L-25 — Scienze e Tecnologie Agrarie e Forestali' },
+  { id:'L-26',     label:'L-26 — Scienze e Tecnologie Agro-Alimentari' },
+  { id:'L-27',     label:'L-27 — Scienze e Tecnologie Chimiche' },
+  { id:'L-28',     label:'L-28 — Scienze e Tecnologie della Navigazione' },
+  { id:'L-29',     label:'L-29 — Scienze e Tecnologie Farmaceutiche' },
+  { id:'L-30',     label:'L-30 — Scienze e Tecnologie Fisiche' },
+  { id:'L-31',     label:'L-31 — Scienze e Tecnologie Informatiche' },
+  { id:'L-32',     label:'L-32 — Scienze e Tecnologie per l\'Ambiente e la Natura' },
+  { id:'L-33',     label:'L-33 — Scienze Economiche' },
+  { id:'L-34',     label:'L-34 — Scienze Geologiche' },
+  { id:'L-35',     label:'L-35 — Scienze Matematiche' },
+  { id:'L-36',     label:'L-36 — Scienze Politiche e delle Relazioni Internazionali' },
+  { id:'L-37',     label:'L-37 — Scienze Sociali per la Cooperazione e la Pace' },
+  { id:'L-38',     label:'L-38 — Scienze Zootecniche e Tecnologie delle Produzioni Animali' },
+  { id:'L-39',     label:'L-39 — Servizio Sociale' },
+  { id:'L-40',     label:'L-40 — Sociologia' },
+  { id:'L-41',     label:'L-41 — Statistica' },
+  { id:'L-42',     label:'L-42 — Storia' },
+  { id:'L-43',     label:'L-43 — Tecnologie per la Conservazione dei Beni Culturali' },
+  { id:'L-SC.MAT', label:'L-SC.MAT — Scienze dei Materiali' },
+  { id:'L-GASTR',  label:'L-GASTR — Scienze, Culture e Politiche della Gastronomia' },
+  // ── MAGISTRALI A CICLO UNICO ──
+  { id:'LM-4',      label:'LM-4 — Architettura e Ingegneria Edile [ciclo unico 5 anni]' },
+  { id:'LM-13',     label:'LM-13 — Farmacia e Farmacia Industriale [ciclo unico 5 anni]' },
+  { id:'LM-41',     label:'LM-41 — Medicina e Chirurgia [ciclo unico 6 anni]' },
+  { id:'LM-42',     label:'LM-42 — Medicina Veterinaria [ciclo unico 5 anni]' },
+  { id:'LM-46',     label:'LM-46 — Odontoiatria e Protesi Dentaria [ciclo unico 5 anni]' },
+  { id:'LM-85bis',  label:'LM-85bis — Scienze della Formazione Primaria [ciclo unico 5 anni]' },
+  { id:'LMG-01',    label:'LMG-01 — Giurisprudenza [ciclo unico 5 anni]' },
+  { id:'LMR-02',    label:'LMR-02 — Conservazione e Restauro dei Beni Culturali [ciclo unico 5 anni]' }
 ];
 
 const CANDIDATI = {
@@ -1161,11 +1224,75 @@ function renderWizardMateriaGrid() {
 }
 
 function renderWizardCdlRow() {
-  document.getElementById('wizardCdlRow').innerHTML = CDL_LIST.map(function(c) {
-    return '<div class="cdl-btn" id="wcdl-' + c.id.replace(/\//g,'_') + '"'
-         + ' onclick="toggleWizardCdl(\'' + c.id + '\')">'
-         + c.label + '</div>';
-  }).join('');
+  var triennali = CDL_LIST.filter(function(c) { return c.id.startsWith('L-') || c.id.startsWith('L/'); });
+  var cicloUnico = CDL_LIST.filter(function(c) { return c.id.startsWith('LM') || c.id.startsWith('LMG') || c.id.startsWith('LMR'); });
+
+  function buildGroup(title, items) {
+    return '<div style="margin-bottom:12px">'
+      + '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;'
+      + 'color:var(--gray-3);padding:6px 0;border-bottom:1px solid var(--gray-2);margin-bottom:8px">'
+      + title + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px">'
+      + items.map(function(c) {
+          return '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;'
+            + 'border-radius:6px;cursor:pointer;font-size:13px;transition:background 0.15s"'
+            + ' onmouseover="this.style.background=\'var(--green-light)\'"'
+            + ' onmouseout="this.style.background=\'transparent\'">'
+            + '<input type="checkbox" value="' + escHtml(c.id) + '"'
+            + ' style="accent-color:var(--green);width:15px;height:15px;cursor:pointer"'
+            + ' onchange="onCdlCheckboxChange(this)">'
+            + '<span>' + escHtml(c.label) + '</span>'
+            + '</label>';
+        }).join('')
+      + '</div></div>';
+  }
+
+  var html =
+    '<div style="margin-bottom:12px">'
+    + '<input type="text" id="cdlSearchInput" placeholder="🔍 Filtra per sigla o nome..." '
+    + 'style="width:100%;font-size:13px" oninput="filterCdlCheckboxes(this.value)">'
+    + '</div>'
+    + '<div id="cdlCheckboxList" style="max-height:280px;overflow-y:auto;'
+    + 'border:1.5px solid var(--gray-2);border-radius:8px;padding:10px">'
+    + buildGroup('Lauree Triennali (L-)', triennali)
+    + buildGroup('Magistrali a Ciclo Unico (LM-)', cicloUnico)
+    + '</div>';
+
+  document.getElementById('wizardCdlRow').innerHTML = html;
+}
+function onCdlCheckboxChange(checkbox) {
+  var id = checkbox.value;
+  if (checkbox.checked) {
+    if (wizardSelectedCdls.indexOf(id) < 0) wizardSelectedCdls.push(id);
+  } else {
+    wizardSelectedCdls = wizardSelectedCdls.filter(function(c) { return c !== id; });
+  }
+  renderWizardCdlSelected();
+}
+function filterCdlCheckboxes(query) {
+  var q = query.toLowerCase().trim();
+  var labels = document.querySelectorAll('#cdlCheckboxList label');
+  labels.forEach(function(lbl) {
+    var text = lbl.textContent.toLowerCase();
+    lbl.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+}
+function removeCdlBadge(id) {
+  wizardSelectedCdls = wizardSelectedCdls.filter(function(c) { return c !== id; });
+  var checkboxes = document.querySelectorAll('#cdlCheckboxList input[type="checkbox"]');
+  checkboxes.forEach(function(cb) {
+    if (cb.value === id) cb.checked = false;
+  });
+  renderWizardCdlSelected();
+}
+function addCdlFromInlineSelect() {
+  var sel = document.getElementById('wizardCdlSelectInline');
+  if (!sel || !sel.value) { showToast('⚠️ Seleziona una classe di laurea', 'warning'); return; }
+  var id = sel.value;
+  if (wizardSelectedCdls.indexOf(id) >= 0) { showToast('⚠️ Già presente', 'warning'); return; }
+  wizardSelectedCdls.push(id);
+  sel.value = '';
+  renderWizardCdlSelected();
 }
 
 function selectWizardMateria(id) {
@@ -1200,18 +1327,29 @@ function addCustomCdl() {
   document.getElementById('customCdlInput').value = '';
   renderWizardCdlSelected();
 }
-
 function renderWizardCdlSelected() {
   var el = document.getElementById('wizardCdlSelected');
+  if (!el) return;
   if (!wizardSelectedCdls.length) { el.innerHTML = ''; return; }
-  el.innerHTML = '<div style="margin-top:8px;font-size:12px;color:var(--text-2)">'
-    + '<strong>Selezionati:</strong> '
-    + wizardSelectedCdls.map(function(c) {
-        return '<span class="badge badge-blue" style="margin:2px">' + escHtml(c) + '</span>';
-      }).join('')
-    + '</div>';
-}
 
+  el.innerHTML = '<div style="margin-top:12px">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px">'
+    + 'Selezionate (' + wizardSelectedCdls.length + '):</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + wizardSelectedCdls.map(function(id) {
+        var found = CDL_LIST.find(function(c) { return c.id === id; });
+        var shortLabel = found ? found.label.split(' — ')[0] : id;
+        return '<span style="display:inline-flex;align-items:center;gap:6px;'
+          + 'background:var(--blue-light);border:1.5px solid #bfdbfe;'
+          + 'border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--blue)">'
+          + escHtml(shortLabel)
+          + '<button onclick="removeCdlBadge(\'' + id.replace(/'/g, "\\'") + '\')" '
+          + 'style="background:none;border:none;cursor:pointer;color:#1d4ed8;'
+          + 'font-size:14px;line-height:1;padding:0;margin-left:2px">✕</button>'
+          + '</span>';
+      }).join('')
+    + '</div></div>';
+}
 function updateWizardUI() {
   [1,2,3].forEach(function(i) {
     var step  = document.getElementById('wstep'  + i);
@@ -2775,6 +2913,468 @@ function showToast(msg, type) {
   clearTimeout(t._timer);
   t._timer = setTimeout(function(){ t.style.display='none'; }, 3200);
 }
+// ════════════════════════════════════════════════
+//  MODULO INDICE MANUALE
+// ════════════════════════════════════════════════
+
+var BOOK_STEP     = 1;
+var BOOK_PDF_TEXT = '';
+var BOOK_JSON     = null;
+
+// ── Apri modale ──────────────────────────────
+function openBookIndexModal() {
+  BOOK_STEP     = 1;
+  BOOK_PDF_TEXT = '';
+  BOOK_JSON     = null;
+
+  // Reset campi
+  ['bookTitle','bookAuthor','bookPublisher',
+   'bookSubject','bookId','bookTextInput'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('bookType').value       = 'Zanichelli';
+  document.getElementById('bookPdfStatus').innerHTML = '';
+  document.getElementById('bookProgress').style.display = 'none';
+  document.getElementById('bookJsonPreview').textContent = '';
+
+  updateBookUI();
+  switchBookTab('pdf');
+  openModal('bookIndexModal');
+}
+
+// ── Aggiorna UI step ─────────────────────────
+function updateBookUI() {
+  document.getElementById('bookStep1').style.display = BOOK_STEP === 1 ? 'block' : 'none';
+  document.getElementById('bookStep2').style.display = BOOK_STEP === 2 ? 'block' : 'none';
+  document.getElementById('bookStep3').style.display = BOOK_STEP === 3 ? 'block' : 'none';
+
+  document.getElementById('btnBookBack').style.display =
+    BOOK_STEP > 1 ? 'inline-flex' : 'none';
+  document.getElementById('btnBookNext').style.display =
+    BOOK_STEP < 3 ? 'inline-flex' : 'none';
+  document.getElementById('btnBookCopy').style.display =
+    BOOK_STEP === 3 ? 'inline-flex' : 'none';
+  document.getElementById('btnBookDownload').style.display =
+    BOOK_STEP === 3 ? 'inline-flex' : 'none';
+
+  document.getElementById('btnBookNext').innerHTML =
+    BOOK_STEP === 1
+      ? 'Avanti <i class="fas fa-arrow-right"></i>'
+      : '<i class="fas fa-robot"></i> Genera JSON';
+  document.getElementById('btnBookNext').disabled = false;
+}
+
+function bookStepBack() {
+  if (BOOK_STEP > 1) { BOOK_STEP--; updateBookUI(); }
+}
+
+async function bookStepNext() {
+  if (BOOK_STEP === 1) {
+    // Valida metadati
+    var title = document.getElementById('bookTitle').value.trim();
+    var author = document.getElementById('bookAuthor').value.trim();
+    if (!title || !author) {
+      showToast('⚠️ Titolo e autore sono obbligatori', 'warning'); return;
+    }
+    // Auto-genera ID se vuoto
+    var idEl = document.getElementById('bookId');
+    if (!idEl.value.trim()) {
+      idEl.value = (author.split(',')[0].trim() + '_' + title.trim())
+        .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    BOOK_STEP = 2;
+    updateBookUI();
+
+  } else if (BOOK_STEP === 2) {
+    // Recupera testo da usare
+    var activeTab = document.getElementById('tabPdf').classList.contains('active')
+      ? 'pdf' : 'text';
+    var inputText = activeTab === 'pdf'
+      ? BOOK_PDF_TEXT
+      : document.getElementById('bookTextInput').value.trim();
+
+    if (!inputText || inputText.length < 50) {
+      showToast('⚠️ Nessun testo disponibile. Carica un PDF o incolla il testo.', 'warning');
+      return;
+    }
+    if (!SETTINGS.apiKey) {
+      showToast('⚠️ Inserisci la chiave API nelle impostazioni', 'warning');
+      openModal('settingsModal'); return;
+    }
+    await generateBookJson(inputText);
+  }
+}
+
+// ── Switch tab PDF / Testo ───────────────────
+function switchBookTab(tab) {
+  document.getElementById('bookTabPdf').style.display  = tab === 'pdf'  ? 'block' : 'none';
+  document.getElementById('bookTabText').style.display = tab === 'text' ? 'block' : 'none';
+  document.getElementById('tabPdf').classList.toggle('active',  tab === 'pdf');
+  document.getElementById('tabText').classList.toggle('active', tab === 'text');
+}
+
+// ── Gestione PDF ─────────────────────────────
+function setupBookDropZone() {
+  var dz = document.getElementById('bookDropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) {
+    e.preventDefault(); dz.classList.add('drag-over');
+  });
+  dz.addEventListener('dragleave', function() {
+    dz.classList.remove('drag-over');
+  });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    var f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.pdf')) handleBookPdf(f);
+    else showToast('⚠️ Carica un file PDF', 'warning');
+  });
+}
+
+async function handleBookPdf(file) {
+  if (!file) return;
+  var statusEl = document.getElementById('bookPdfStatus');
+  statusEl.innerHTML =
+    '<div class="file-item processing">'
+    + '<div class="file-icon">⚙️</div>'
+    + '<div class="file-info"><div class="file-name">' + escHtml(file.name) + '</div>'
+    + '<div class="file-meta">Estrazione testo in corso...</div></div>'
+    + '</div>';
+
+  try {
+    var text = await extractTextFromPdf(file);
+
+    // Verifica se il testo è sufficiente
+    if (!text || text.length < 100) {
+      // PDF non leggibile — suggerisci il tab testo
+      statusEl.innerHTML =
+        '<div class="file-item error">'
+        + '<div class="file-icon">❌</div>'
+        + '<div class="file-info">'
+        + '<div class="file-name">' + escHtml(file.name) + '</div>'
+        + '<div class="file-meta">PDF non leggibile automaticamente.</div>'
+        + '</div></div>';
+      var callout = '<div class="callout warning" style="margin-top:10px">'
+        + '<span class="ci">⚠️</span>'
+        + '<div>Questo PDF è scansionato o protetto. '
+        + 'Aprilo in Word o Acrobat, copia il testo dell\'indice e usa il tab '
+        + '<strong>"Incolla testo"</strong>.</div></div>';
+      statusEl.innerHTML += callout;
+      BOOK_PDF_TEXT = '';
+      return;
+    }
+
+    // Testo estratto correttamente
+    BOOK_PDF_TEXT = text;
+    statusEl.innerHTML =
+      '<div class="file-item done">'
+      + '<div class="file-icon">✅</div>'
+      + '<div class="file-info">'
+      + '<div class="file-name">' + escHtml(file.name) + '</div>'
+      + '<div class="file-meta">Testo estratto: '
+      + text.length + ' caratteri — pronto per la generazione.</div>'
+      + '</div></div>';
+
+  } catch(e) {
+    statusEl.innerHTML =
+      '<div class="file-item error">'
+      + '<div class="file-icon">❌</div>'
+      + '<div class="file-info"><div class="file-name">' + escHtml(file.name) + '</div>'
+      + '<div class="file-meta">Errore: ' + e.message + '</div>'
+      + '</div></div>';
+    BOOK_PDF_TEXT = '';
+  }
+}
+
+// ── Generazione JSON con AI ──────────────────
+async function generateBookJson(inputText) {
+  var btn = document.getElementById('btnBookNext');
+  btn.disabled = true;
+  document.getElementById('bookProgress').style.display = 'block';
+
+  function setProgress(pct, label) {
+    document.getElementById('bookProgressLabel').textContent = label;
+    document.getElementById('bookProgressPct').textContent   = pct + '%';
+    document.getElementById('bookProgressFill').style.width  = pct + '%';
+  }
+
+  try {
+    setProgress(20, 'Analisi dell\'indice in corso...');
+
+    var meta = {
+      id:        document.getElementById('bookId').value.trim(),
+      title:     document.getElementById('bookTitle').value.trim(),
+      author:    document.getElementById('bookAuthor').value.trim(),
+      publisher: document.getElementById('bookPublisher').value.trim(),
+      subject:   document.getElementById('bookSubject').value.trim(),
+      type:      document.getElementById('bookType').value
+    };
+
+    var systemPrompt =
+      'Sei un esperto di editoria universitaria italiana. '
+      + 'Ricevi il testo grezzo di un indice di un manuale universitario, '
+      + 'che potrebbe essere mal formattato o disordinato a causa dell\'estrazione da PDF. '
+      + 'Il tuo compito è ricostruire la struttura gerarchica esatta: '
+      + 'capitoli e relative sezioni/paragrafi con i numeri di pagina. '
+      + 'Rispondi SOLO con un oggetto JSON valido, senza markdown, senza spiegazioni.';
+
+    var userPrompt =
+      'Metadati del volume:\n'
+      + '- Titolo: ' + meta.title + '\n'
+      + '- Autore: ' + meta.author + '\n'
+      + '- Materia: ' + meta.subject + '\n\n'
+      + 'TESTO GREZZO DELL\'INDICE:\n'
+      + inputText.substring(0, 8000) + '\n\n'
+      + 'ISTRUZIONI:\n'
+      + '1. Ricostruisci la struttura gerarchica ignorando artefatti di formattazione\n'
+      + '2. Ogni capitolo ha: number (intero), title (stringa), page_start (intero), sections (array)\n'
+      + '3. Ogni sezione ha: number (stringa es. "1.1"), title (stringa), page_start (intero)\n'
+      + '4. Se il numero di pagina non è leggibile usa 0\n'
+      + '5. Ignora prefazioni, bibliografie, indici analitici — solo i capitoli principali\n'
+      + '6. Normalizza i titoli in italiano corretto\n\n'
+      + 'JSON atteso:\n'
+      + '{\n'
+      + '  "id": "' + meta.id + '",\n'
+      + '  "title": "' + meta.title + '",\n'
+      + '  "author": "' + meta.author + '",\n'
+      + '  "publisher": "' + meta.publisher + '",\n'
+      + '  "subject": "' + meta.subject + '",\n'
+      + '  "type": "' + meta.type + '",\n'
+      + '  "chapters": [\n'
+      + '    {\n'
+      + '      "number": 1,\n'
+      + '      "title": "...",\n'
+      + '      "page_start": 1,\n'
+      + '      "sections": [\n'
+      + '        {"number": "1.1", "title": "...", "page_start": 1}\n'
+      + '      ]\n'
+      + '    }\n'
+      + '  ]\n'
+      + '}';
+
+    setProgress(50, 'Chiamata AI in corso...');
+
+    var resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SETTINGS.apiKey
+      },
+      body: JSON.stringify({
+        model: SETTINGS.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 4000
+      })
+    });
+
+    if (!resp.ok) throw new Error('API error: ' + resp.status);
+    var data = await resp.json();
+    var raw  = data.choices[0].message.content.trim();
+
+    setProgress(80, 'Parsing JSON...');
+
+    var parsed;
+    try {
+      var match = raw.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(match ? match[0] : raw);
+    } catch(e) {
+      throw new Error('Risposta AI non valida: ' + raw.substring(0, 200));
+    }
+
+    // Assicura che i metadati siano quelli inseriti dall'utente
+    parsed.id        = meta.id;
+    parsed.title     = meta.title;
+    parsed.author    = meta.author;
+    parsed.publisher = meta.publisher;
+    parsed.subject   = meta.subject;
+    parsed.type      = meta.type;
+
+    BOOK_JSON = parsed;
+
+    setProgress(100, 'Completato!');
+    document.getElementById('bookJsonPreview').textContent =
+      JSON.stringify(BOOK_JSON, null, 2);
+
+    BOOK_STEP = 3;
+    updateBookUI();
+    showToast('✅ JSON generato — ' + (parsed.chapters || []).length + ' capitoli');
+
+  } catch(e) {
+    console.error('generateBookJson error:', e);
+    showToast('❌ Errore: ' + e.message, 'error');
+    document.getElementById('bookProgress').style.display = 'none';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Download e copia ─────────────────────────
+function downloadBookJson() {
+  if (!BOOK_JSON) return;
+  var blob = new Blob(
+    [JSON.stringify(BOOK_JSON, null, 2)],
+    { type: 'application/json' }
+  );
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = BOOK_JSON.id + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('✅ JSON scaricato: ' + BOOK_JSON.id + '.json');
+}
+
+function copyBookJson() {
+  if (!BOOK_JSON) return;
+  navigator.clipboard.writeText(JSON.stringify(BOOK_JSON, null, 2))
+    .then(function() { showToast('✅ JSON copiato negli appunti'); })
+    .catch(function() { showToast('❌ Errore copia', 'error'); });
+}
+
+// ── Init drop zone al caricamento pagina ─────
+document.addEventListener('DOMContentLoaded', function() {
+  // Aggiunge listener dopo che il modal è nel DOM
+  setTimeout(setupBookDropZone, 500);
+});
 </script>
+<!-- ═══════════════════════════════════════════════
+     MODAL: NUOVO INDICE MANUALE
+════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="bookIndexModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3><i class="fas fa-book"></i> Crea JSON indice manuale</h3>
+      <button class="modal-close" onclick="closeModal('bookIndexModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- STEP 1: Metadati -->
+      <div id="bookStep1">
+        <div class="callout info" style="margin-bottom:16px">
+          <span class="ci">ℹ️</span>
+          <div>Inserisci i metadati del volume. Tutti i campi sono modificabili anche dopo la generazione.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Titolo</label>
+            <input type="text" id="bookTitle" placeholder="es. Chimica">
+          </div>
+          <div class="form-group">
+            <label>Autore/i</label>
+            <input type="text" id="bookAuthor" placeholder="es. Bertini, Luchinat, Mani">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Casa editrice</label>
+            <input type="text" id="bookPublisher" placeholder="es. Zanichelli">
+          </div>
+          <div class="form-group">
+            <label>Subject (materia)</label>
+            <input type="text" id="bookSubject" placeholder="es. chimica generale">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ID univoco</label>
+            <input type="text" id="bookId" placeholder="es. Bertini_Chimica">
+          </div>
+          <div class="form-group">
+            <label>Tipo</label>
+            <select id="bookType">
+              <option value="Zanichelli">Zanichelli</option>
+              <option value="concorrente">Concorrente</option>
+              <option value="altro">Altro</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Indice -->
+      <div id="bookStep2" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="tab-btn active" id="tabPdf" onclick="switchBookTab('pdf')">
+            <i class="fas fa-file-pdf"></i> Carica PDF
+          </button>
+          <button class="tab-btn" id="tabText" onclick="switchBookTab('text')">
+            <i class="fas fa-paste"></i> Incolla testo
+          </button>
+        </div>
+
+        <!-- Tab PDF -->
+        <div id="bookTabPdf">
+          <div class="drop-zone" id="bookDropZone"
+            onclick="document.getElementById('bookFileInput').click()"
+            style="padding:32px">
+            <i class="fas fa-file-pdf"></i>
+            <h3>Carica il PDF dell'indice</h3>
+            <p>oppure clicca per selezionare</p>
+          </div>
+          <input type="file" id="bookFileInput" accept=".pdf"
+            style="display:none" onchange="handleBookPdf(this.files[0])">
+          <div id="bookPdfStatus" style="margin-top:12px"></div>
+        </div>
+
+        <!-- Tab Testo -->
+        <div id="bookTabText" style="display:none">
+          <div class="form-group">
+            <label>Incolla qui il testo dell'indice</label>
+            <textarea id="bookTextInput" rows="12"
+              placeholder="Incolla il testo dell'indice copiato da Word, Acrobat o altro..."></textarea>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div id="bookProgress" style="display:none;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span id="bookProgressLabel">Elaborazione in corso...</span>
+            <span id="bookProgressPct">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="bookProgressFill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Preview JSON -->
+      <div id="bookStep3" style="display:none">
+        <div class="callout success" style="margin-bottom:16px">
+          <span class="ci">✅</span>
+          <div>JSON generato correttamente. Puoi scaricarlo o copiarlo negli appunti.</div>
+        </div>
+        <div class="json-output" id="bookJsonPreview"
+          style="max-height:360px;font-size:11px"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="btnBookBack"
+        style="margin-right:auto;display:none" onclick="bookStepBack()">
+        <i class="fas fa-arrow-left"></i> Indietro
+      </button>
+      <button class="btn btn-secondary" onclick="closeModal('bookIndexModal')">
+        Chiudi
+      </button>
+      <button class="btn btn-primary" id="btnBookNext" onclick="bookStepNext()">
+        Avanti <i class="fas fa-arrow-right"></i>
+      </button>
+      <button class="btn btn-secondary" id="btnBookCopy"
+        style="display:none" onclick="copyBookJson()">
+        <i class="fas fa-copy"></i> Copia JSON
+      </button>
+      <button class="btn" id="btnBookDownload"
+        style="display:none;background:#f59e0b;color:white" onclick="downloadBookJson()">
+        <i class="fas fa-download"></i> Scarica JSON
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
