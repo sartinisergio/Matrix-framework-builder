@@ -2717,14 +2717,12 @@ function getFinalJson() {
 
   return {
     id:id, name:name, subject:subjectNormalized, context_strategy:context_strategy,
-    content:{
-      target_degrees:   fw.content.target_degrees,
-      evaluation_criteria: evaluation_criteria,
-      program_profiles: fw.content.program_profiles.map(function(p){
-        return {name:p.name, priority_modules:p.priority_modules};
-      }),
-      syllabus_modules: syllabus_modules
-    }
+    target_degrees:   fw.content.target_degrees,
+    evaluation_criteria: evaluation_criteria,
+    program_profiles: fw.content.program_profiles.map(function(p){
+      return {name:p.name, priority_modules:p.priority_modules};
+    }),
+    syllabus_modules: syllabus_modules
   };
 }
 
@@ -2824,7 +2822,7 @@ function downloadReport() {
 
     addText('Progetto: '+(CURRENT_PROJECT?CURRENT_PROJECT.name:''),20,9,[100,100,100]);
     addText('ID: '+fw.id+'  |  Subject: '+fw.subject,20,9,[100,100,100]);
-    addText('Generato: '+new Date().toLocaleDateString('it-IT')+'  |  Target: '+fw.content.target_degrees.join(', '),20,9,[100,100,100]);
+    addText('Generato: '+new Date().toLocaleDateString('it-IT')+'  |  Target: '+fw.target_degrees.join(', '),20,9,[100,100,100]);
 
     var counts2=CURRENT_PROJECT&&CURRENT_PROJECT.framework&&CURRENT_PROJECT.framework._meta
       ?CURRENT_PROJECT.framework._meta.counts:{};
@@ -2836,29 +2834,29 @@ function downloadReport() {
       addSection('Context Strategy');
       addText(fw.context_strategy,23,10);
     }
-    if(fw.content.evaluation_criteria&&Object.keys(fw.content.evaluation_criteria).length){
+    if(fw.evaluation_criteria&&Object.keys(fw.evaluation_criteria).length){
       addSection('Criteri di valutazione diagnostica');
-      Object.entries(fw.content.evaluation_criteria).forEach(function(e){
+      Object.entries(fw.evaluation_criteria).forEach(function(e){
         addText(e[0].replace(/_/g,' '),23,10,[0,100,60],'bold');
         addText(e[1],27,9,[60,60,60]);
       });
     }
-    if(fw.content.program_profiles&&fw.content.program_profiles.length){
+    if(fw.program_profiles&&fw.program_profiles.length){
       addSection('Program Profiles per CdL');
-      fw.content.program_profiles.forEach(function(p){
+      fw.program_profiles.forEach(function(p){
         addText(p.name,23,11,[0,0,0],'bold');
         addText(p.priority_modules,25,9,[60,60,60]); y+=3;
       });
     }
     var internal=CURRENT_PROJECT&&CURRENT_PROJECT.framework
       ?CURRENT_PROJECT.framework.content.syllabus_modules:[];
-    addSection('Syllabus Modules ('+fw.content.syllabus_modules.length+')');
+    addSection('Syllabus Modules ('+fw.syllabus_modules.length+')');
     var nU=internal.filter(function(m){return m.coverage_type==='universal';}).length;
     var nP=internal.filter(function(m){return m.coverage_type==='profile_dependent';}).length;
     var nD=internal.filter(function(m){return m.coverage_type==='discretionary';}).length;
     addText('Universal: '+nU+'  |  Profile-dependent: '+nP+'  |  Discretionary: '+nD,23,9,[100,100,100]);
     y+=2;
-    fw.content.syllabus_modules.forEach(function(m,i){
+    fw.syllabus_modules.forEach(function(m,i){
       if(y>268){doc.addPage();y=20;}
       var im=internal[i];
       var tipo=im&&im.coverage_type==='universal'?'[U]':im&&im.coverage_type==='profile_dependent'?'[P]':'[D]';
@@ -3233,7 +3231,7 @@ async function generateBookJson(inputText) {
       publisher: meta.publisher,
       subject:   meta.subject,
       type:      meta.type,
-      chapters:  allChaptersWithSections.sort(function(a,b){ return a.number - b.number; })
+      index_chapters: allChaptersWithSections.sort(function(a,b){ return a.number - b.number; })
     };
 
     BOOK_JSON = finalJson;
