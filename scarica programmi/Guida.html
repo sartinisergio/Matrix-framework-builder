@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scarica Programmi — Guida rapida</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #201c1b;
+    --ink-soft: #6b625f;
+    --paper: #f7f3f0;
+    --surface: #ffffff;
+    --line: #e6ddd8;
+    --accent: #9c1d2e;
+    --accent-soft: #f3e2e0;
+    --ok: #2f7d5c;
+    --ok-soft: #e2f0e9;
+    --warn: #a66a1f;
+    --warn-soft: #f6ead4;
+    --err: #b13a3a;
+    --err-soft: #f7e3e0;
+    --shadow: 0 1px 2px rgba(32,28,27,0.04), 0 6px 20px rgba(32,28,27,0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #f0e9e6;
+      --ink-soft: #b3a9a5;
+      --paper: #181514;
+      --surface: #211c1b;
+      --line: #35302e;
+      --accent: #e07d87;
+      --accent-soft: #3a2224;
+      --ok: #7dc4a3;
+      --ok-soft: #1d332a;
+      --warn: #e3b164;
+      --warn-soft: #3a2d18;
+      --err: #e08c8c;
+      --err-soft: #3a2321;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Public Sans", -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+
+  a { color: var(--accent); }
+
+  h1, h2, h3 {
+    font-family: "Source Serif 4", Georgia, serif;
+    text-wrap: balance;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+  }
+
+  /* ── Masthead ─────────────────────────────────────────────── */
+
+  header.masthead {
+    margin-bottom: 48px;
+  }
+
+  .eyebrow {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-size: 2.15rem;
+    font-weight: 600;
+    line-height: 1.22;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    margin-top: 14px;
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+    max-width: 58ch;
+  }
+
+  /* ── Pipeline ─────────────────────────────────────────────── */
+
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    margin: 40px 0 56px;
+    padding: 22px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+
+  .stage {
+    text-align: center;
+    padding: 6px 4px;
+  }
+
+  .stage .name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .stage .sub {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    margin-top: 3px;
+  }
+
+  .stage.current .name { color: var(--accent); }
+
+  .arrow {
+    color: var(--line);
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+
+  @media (max-width: 560px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); justify-self: center; }
+  }
+
+  /* ── Section headers ──────────────────────────────────────── */
+
+  section { margin-bottom: 56px; }
+
+  .section-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* ── Setup panel ──────────────────────────────────────────── */
+
+  .setup {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .setup h3 {
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .setup p { margin: 0 0 12px; color: var(--ink-soft); font-size: 0.96rem; }
+
+  .setup + .setup { margin-top: 14px; }
+
+  pre.cmd {
+    margin: 0;
+    background: var(--ink);
+    color: #f0e9e6;
+    border-radius: 7px;
+    padding: 13px 16px;
+    font-size: 0.86rem;
+    overflow-x: auto;
+    line-height: 1.55;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    pre.cmd { background: #0f0d0c; }
+  }
+
+  .note {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    margin-top: 10px;
+  }
+
+  /* ── Steps ────────────────────────────────────────────────── */
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 20px;
+    padding: 26px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step .num {
+    font-family: "Source Serif 4", serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.4;
+  }
+
+  .step h3 {
+    font-size: 1.12rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .step p { margin: 0; color: var(--ink-soft); font-size: 0.97rem; }
+
+  .step p + p { margin-top: 10px; }
+
+  .btn-ref {
+    display: inline-block;
+    font-family: "Public Sans", sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 9px;
+  }
+
+  .callout {
+    margin-top: 14px;
+    padding: 13px 16px;
+    background: var(--ok-soft);
+    border-left: 3px solid var(--ok);
+    border-radius: 0 7px 7px 0;
+    font-size: 0.9rem;
+  }
+
+  .callout strong { color: var(--ok); }
+
+  /* ── Tables ───────────────────────────────────────────────── */
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    font-size: 0.92rem;
+  }
+
+  th {
+    text-align: left;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  td.mono-cell { font-family: "IBM Plex Mono", monospace; font-size: 0.84rem; color: var(--ink-soft); }
+
+  .chip {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+
+  .chip.ok    { background: var(--ok-soft);   color: var(--ok); }
+  .chip.warn  { background: var(--warn-soft); color: var(--warn); }
+  .chip.err   { background: var(--err-soft);  color: var(--err); }
+  .chip.skip  { background: var(--line);      color: var(--ink-soft); }
+
+  /* ── CLI section ──────────────────────────────────────────── */
+
+  .cli-note {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+  }
+
+  /* ── Footer ───────────────────────────────────────────────── */
+
+  footer {
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+  }
+
+  footer .eco { margin-top: 10px; display: flex; gap: 18px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Scarica Programmi — Guida rapida</div>
+    <h1>Dall'export di Atlante ai PDF pronti per Matrix Framework Builder</h1>
+    <p class="lede">Uno strumento, sei passaggi: esporti l'elenco degli insegnamenti, lo strumento va a recuperare i programmi al posto tuo, tu carichi il risultato per l'analisi.</p>
+  </header>
+
+  <div class="pipeline">
+    <div class="stage">
+      <div class="name">Atlante / MyUniversity</div>
+      <div class="sub">esporti il file .xls</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage current">
+      <div class="name">Scarica Programmi</div>
+      <div class="sub">anteprima · download · verifica</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage">
+      <div class="name">Matrix Framework Builder</div>
+      <div class="sub">carichi i PDF per l'analisi</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-label">Prima di iniziare — una tantum</div>
+    <div class="setup">
+      <h3>1. Installa Python</h3>
+      <p>Se non è già installato, scaricalo da python.org. Durante l'installazione spunta <strong>"Add Python to PATH"</strong>.</p>
+    </div>
+    <div class="setup">
+      <h3>2. Installa le dipendenze</h3>
+      <p>Apri il Prompt dei comandi nella cartella dello strumento e lancia, una sola volta:</p>
+      <pre class="cmd">pip install playwright beautifulsoup4 lxml pypdf
+playwright install chromium</pre>
+      <p class="note">Il secondo comando scarica il browser Chromium (~150&nbsp;MB) usato per aprire le pagine dei programmi. Richiede qualche minuto.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Il percorso, passo per passo</div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="num">1</div>
+        <div>
+          <h3>Esporta da Atlante / MyUniversity</h3>
+          <p>Fai la tua ricerca e esporti il file Excel con gli insegnamenti da analizzare. Salvalo nella cartella dello strumento, così comparirà da solo nel passo successivo.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div>
+          <h3>Apri la finestra dello strumento</h3>
+          <p>Doppio clic su <span class="btn-ref">Avvia Scarica Programmi.bat</span>. Non serve aprire il Prompt dei comandi né ricordare parametri: scegli il file dal menu a tendina ed eventualmente un ateneo o un limite per una prova.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div>
+          <h3>Guarda l'anteprima</h3>
+          <p>Il pulsante <span class="btn-ref">Anteprima</span> mostra quanti link sono scaricabili, quanti verranno saltati e perché — senza scaricare nulla. Consigliato prima di un batch grande, per farsi un'idea del lavoro prima di partire.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div>
+          <h3>Avvia il download</h3>
+          <p>Il pulsante <span class="btn-ref">Avvia download</span> parte subito. L'avanzamento scorre nella finestra riga per riga: tipo di link, ateneo, esito.</p>
+          <div class="callout"><strong>Se si interrompe, niente va perso.</strong> Ogni PDF è salvato su disco appena scaricato. Rilanciando lo stesso download con gli stessi parametri (senza ordine casuale), lo strumento salta i file già presenti e riprende solo quello che manca.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">5</div>
+        <div>
+          <h3>Verifica i PDF scaricati</h3>
+          <p>Il pulsante <span class="btn-ref">Verifica PDF scaricati</span> rilegge ogni file e segnala i sospetti: un banner cookie non chiuso in tempo, una pagina quasi vuota, o un insegnamento il cui programma non è ancora stato compilato dal docente. Per quest'ultimo caso non c'è nulla da fare finché l'ateneo non lo pubblica; per gli altri, basta cancellare il file segnalato e ripetere il passo 4.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">6</div>
+        <div>
+          <h3>Carica su Matrix Framework Builder</h3>
+          <p>I PDF pronti si trovano nella sottocartella <code>programmi_pdf</code>, con lo stesso nome del file esportato. Apri <code>index.html</code> nella cartella principale (o vai su <a href="https://matrix-framework-builder.netlify.app/">matrix-framework-builder.netlify.app</a>) e caricali per l'analisi.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Riferimento — tipi di link riconosciuti</div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Tipo di link</th><th>Esempio</th><th>Esito</th></tr></thead>
+        <tbody>
+          <tr><td>PDF diretto</td><td class="mono-cell">…/programma.pdf</td><td><span class="chip ok">scaricato</span></td></tr>
+          <tr><td>Course Catalogue CINECA</td><td class="mono-cell">*.coursecatalogue.cineca.it</td><td><span class="chip ok">scaricato</span></td></tr>
+          <tr><td>Uniroma1 / Sapienza</td><td class="mono-cell">corsidilaurea.uniroma1.it</td><td><span class="chip ok">scaricato</span></td></tr>
+          <tr><td>Pagina HTML di ateneo</td><td class="mono-cell">unibo.it, polito.it, unina.it…</td><td><span class="chip ok">scaricato</span></td></tr>
+          <tr><td>Sistema gestionale con login</td><td class="mono-cell">Esse3, GOMP…</td><td><span class="chip skip">saltato</span></td></tr>
+          <tr><td>Programma non pubblicato</td><td class="mono-cell">pagina esiste, contenuto assente</td><td><span class="chip skip">saltato</span></td></tr>
+          <tr><td>Nessun link</td><td class="mono-cell">campo vuoto nell'export</td><td><span class="chip skip">saltato</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Riferimento — esiti nel registro di download</div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Esito</th><th>Significato</th></tr></thead>
+        <tbody>
+          <tr><td><span class="chip ok">ok</span></td><td>PDF scaricato correttamente</td></tr>
+          <tr><td><span class="chip err">errore</span></td><td>Pagina non raggiungibile, timeout, o link scaduto</td></tr>
+          <tr><td><span class="chip warn">senza_programma</span></td><td>Pagina esistente ma il docente non ha ancora compilato il programma</td></tr>
+          <tr><td><span class="chip skip">saltato</span></td><td>PDF già presente da una sessione precedente</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section style="margin-bottom: 0;">
+    <div class="section-label">Da riga di comando</div>
+    <p class="cli-note">Chi preferisce il terminale al posto della finestra può usare direttamente <code>scarica_programmi.py</code> e <code>verifica_pdf.py</code> — fanno esattamente le stesse cose. Dettagli e opzioni complete nel file <code>README.md</code> nella stessa cartella.</p>
+  </section>
+
+  <footer>
+    <div>Parte dell'ecosistema Zanichelli Core.</div>
+    <div class="eco">
+      <a href="https://myuniversity-v2.netlify.app/">MyUniversity 2.0</a>
+      <a href="https://matrix-framework-builder.netlify.app/">Matrix Framework Builder</a>
+      <a href="https://uni-matrix.netlify.app/welcome.html">Matrix Analisi</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

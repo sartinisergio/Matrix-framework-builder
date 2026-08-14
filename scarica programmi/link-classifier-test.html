@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Classificatore Link — MyUniversity</title>
+<style>
+  :root {
+    --red: #c8102e; --red-dark: #a50d26; --green: #1a7a4a;
+    --blue: #1e40af; --orange: #c2410c; --gray: #6b7280;
+    --bg: #f5f7fa; --white: #ffffff; --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; }
+  header { background: var(--red); color: white; padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1.2rem; font-weight: 700; }
+  header span { font-size: 0.85rem; opacity: 0.8; }
+  .container { max-width: 1300px; margin: 0 auto; padding: 28px 16px; }
+
+  .drop-zone {
+    border: 2.5px dashed #c8102e44; border-radius: 14px; background: white;
+    padding: 48px 32px; text-align: center; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s; margin-bottom: 28px;
+  }
+  .drop-zone:hover, .drop-zone.over { border-color: var(--red); background: #fff5f6; }
+  .drop-zone .icon { font-size: 2.8rem; margin-bottom: 12px; }
+  .drop-zone h2 { font-size: 1.1rem; color: #333; margin-bottom: 6px; }
+  .drop-zone p { font-size: 0.85rem; color: #888; }
+  .drop-zone input { display: none; }
+  .btn-upload {
+    display: inline-block; margin-top: 16px; background: var(--red); color: white;
+    border: none; border-radius: 7px; padding: 10px 26px; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-upload:hover { background: var(--red-dark); }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: white; border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+  .stat-card.pdf   { border-left-color: var(--green); }
+  .stat-card.html  { border-left-color: var(--blue); }
+  .stat-card.gest  { border-left-color: var(--orange); }
+  .stat-card.vuoto { border-left-color: var(--gray); }
+  .stat-card.total { border-left-color: var(--red); }
+  .stat-card .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; }
+  .stat-card .value { font-size: 1.9rem; font-weight: 800; color: #222; line-height: 1; }
+  .stat-card .pct   { font-size: 0.82rem; color: #aaa; }
+
+  .progress-wrap { background: white; border-radius: 10px; padding: 18px 20px; margin-bottom: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .progress-wrap h3 { font-size: 0.85rem; font-weight: 700; color: #555; margin-bottom: 12px; }
+  .progress-bar-row { display: flex; height: 26px; border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+  .pb-pdf    { background: var(--green); }
+  .pb-html   { background: var(--blue); }
+  .pb-cineca { background: #7c3aed; }
+  .pb-gest   { background: var(--orange); }
+  .pb-vuoto  { background: #d1d5db; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.8rem; color: #555; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+  .results-wrap { background: white; border-radius: 10px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .results-header h3 { font-size: 1rem; font-weight: 700; color: #333; }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .filter-row select, .filter-row input { padding: 7px 11px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; background: #fafafa; }
+  .filter-row select:focus, .filter-row input:focus { outline: none; border-color: var(--red); }
+  .btn-export { background: var(--green); color: white; border: none; border-radius: 6px; padding: 8px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn-export:hover { background: #155f39; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  thead th { background: #f5f5f5; color: #444; font-weight: 600; padding: 9px 10px; text-align: left; white-space: nowrap; border-bottom: 2px solid #eee; position: sticky; top: 0; }
+  tbody tr:hover { background: #fff8f8; }
+  tbody td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  tbody td.url-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  tbody td a { color: var(--red); text-decoration: none; font-size: 0.78rem; }
+  tbody td a:hover { text-decoration: underline; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+  .badge-pdf    { background: #dcfce7; color: #166534; }
+  .badge-html   { background: #dbeafe; color: #1e3a8a; }
+  .badge-cineca { background: #ede9fe; color: #5b21b6; }
+  .badge-gest   { background: #ffedd5; color: #7c2d12; }
+  .badge-vuoto  { background: #f3f4f6; color: #6b7280; }
+  .table-scroll { max-height: 520px; overflow-y: auto; }
+  #contatore { font-size: 0.85rem; color: #666; }
+  #contatore strong { color: var(--red); }
+  .empty-state { text-align: center; padding: 60px 20px; color: #aaa; font-size: 0.95rem; }
+
+  .tab-nav { display:flex; gap:0; border-bottom:2px solid #e5e7eb; margin-bottom:24px; }
+  .tab-btn { padding:10px 24px; border:none; background:none; color:#888; font-size:0.9rem; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all 0.15s; }
+  .tab-btn.attivo { color:var(--red); border-bottom-color:var(--red); }
+  .tab-btn:hover:not(.attivo) { color:#555; background:#f9f9f9; }
+  .tab-pane { display:none; }
+  .tab-pane.attivo { display:block; }
+
+  /* Verifica qualità */
+  .vq-toolbar { background:white; border-radius:10px; padding:18px 24px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap; }
+  .vq-toolbar label { font-size:0.8rem; font-weight:700; color:#555; display:block; margin-bottom:5px; }
+  .vq-toolbar select, .vq-toolbar input[type=number] { padding:7px 11px; border:1px solid #ddd; border-radius:6px; font-size:0.85rem; background:#fafafa; }
+  .btn-genera { background:var(--red); color:white; border:none; border-radius:7px; padding:9px 22px; font-size:0.88rem; font-weight:600; cursor:pointer; }
+  .btn-genera:hover { background:var(--red-dark); }
+  .btn-esporta-vq { background:#1a7a4a; color:white; border:none; border-radius:7px; padding:9px 22px; font-size:0.88rem; font-weight:600; cursor:pointer; }
+  .btn-esporta-vq:disabled { background:#aaa; cursor:not-allowed; }
+
+  .vq-dominio-card { background:white; border-radius:10px; padding:18px 20px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+  .vq-dominio-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+  .vq-dominio-nome { font-family:monospace; font-size:0.95rem; font-weight:700; color:#333; }
+  .vq-dominio-meta { font-size:0.8rem; color:#888; }
+  .vq-score { display:flex; gap:8px; align-items:center; font-size:0.82rem; }
+  .vq-score-badge { padding:3px 10px; border-radius:10px; font-weight:700; font-size:0.75rem; }
+  .vq-score-ok  { background:#dcfce7; color:#166534; }
+  .vq-score-mid { background:#fef9c3; color:#854d0e; }
+  .vq-score-bad { background:#fee2e2; color:#991b1b; }
+  .vq-score-nd  { background:#f3f4f6; color:#6b7280; }
+
+  .vq-url-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f3f4f6; flex-wrap:wrap; }
+  .vq-url-row:last-child { border-bottom:none; }
+  .vq-url-text { font-size:0.78rem; color:#555; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .vq-url-ins { font-size:0.75rem; color:#888; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn-apri { background:#1e40af; color:white; border:none; border-radius:5px; padding:4px 12px; font-size:0.75rem; cursor:pointer; white-space:nowrap; }
+  .btn-apri:hover { background:#1e3a8a; }
+  .vq-voti { display:flex; gap:5px; }
+  .btn-voto { border:1.5px solid #ddd; background:white; border-radius:5px; padding:3px 10px; font-size:0.75rem; cursor:pointer; transition:all 0.12s; white-space:nowrap; }
+  .btn-voto:hover { border-color:#999; }
+  .btn-voto.sel-ok   { background:#dcfce7; border-color:#16a34a; color:#166534; font-weight:700; }
+  .btn-voto.sel-mid  { background:#fef9c3; border-color:#ca8a04; color:#854d0e; font-weight:700; }
+  .btn-voto.sel-idx  { background:#e0f2fe; border-color:#0284c7; color:#0c4a6e; font-weight:700; }
+  .btn-voto.sel-bad  { background:#fee2e2; border-color:#dc2626; color:#991b1b; font-weight:700; }
+  .vq-score-idx { background:#e0f2fe; color:#0c4a6e; }
+
+  .error-box { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; color: #c8102e; font-size: 0.88rem; display:none; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🔗 Test Classificatore Link</h1>
+    <span>Analisi tipo di URL dal campo url_ins — export MyUniversity (.xls HTML)</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="drop-zone" id="drop-zone">
+    <div class="icon">📂</div>
+    <h2>Carica un export Excel di MyUniversity</h2>
+    <p>Trascina qui il file <strong>.xls</strong> prodotto dal pulsante "Export Excel" di MyUniversity</p>
+    <input type="file" id="file-input" accept=".xls,.xlsx,.html,.htm">
+    <button class="btn-upload" onclick="document.getElementById('file-input').click()">Seleziona file</button>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div id="section-stats" style="display:none;">
+    <!-- TAB NAV -->
+    <div class="tab-nav">
+      <button class="tab-btn attivo" onclick="switchTab('classificazione')">📊 Classificazione</button>
+      <button class="tab-btn" onclick="switchTab('verifica')">🔍 Verifica qualità URL</button>
+    </div>
+
+    <!-- TAB: CLASSIFICAZIONE -->
+    <div class="tab-pane attivo" id="tab-classificazione">
+    <div class="stats-grid">
+      <div class="stat-card total"><span class="label">Insegnamenti totali</span><span class="value" id="s-total">0</span><span class="pct">nel file caricato</span></div>
+      <div class="stat-card pdf"><span class="label">PDF diretto</span><span class="value" id="s-pdf">0</span><span class="pct" id="p-pdf">0%</span></div>
+      <div class="stat-card" style="border-left-color:#7c3aed;"><span class="label">Course Catalogue CINECA</span><span class="value" id="s-cineca">0</span><span class="pct" id="p-cineca">0%</span></div>
+      <div class="stat-card html"><span class="label">Pagina HTML (altro)</span><span class="value" id="s-html">0</span><span class="pct" id="p-html">0%</span></div>
+      <div class="stat-card gest"><span class="label">Sistema gestionale</span><span class="value" id="s-gest">0</span><span class="pct" id="p-gest">0%</span></div>
+      <div class="stat-card vuoto"><span class="label">Non disponibile</span><span class="value" id="s-vuoto">0</span><span class="pct" id="p-vuoto">0%</span></div>
+    </div>
+    <div class="progress-wrap">
+      <h3>Distribuzione percentuale</h3>
+      <div class="progress-bar-row" id="progress-bar"></div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--green)"></span> PDF diretto</span>
+        <span><span class="dot" style="background:#7c3aed"></span> Course Catalogue CINECA</span>
+        <span><span class="dot" style="background:var(--blue)"></span> Pagina HTML (altro)</span>
+        <span><span class="dot" style="background:var(--orange)"></span> Sistema gestionale</span>
+        <span><span class="dot" style="background:#d1d5db"></span> Non disponibile</span>
+      </div>
+    </div>
+    <div class="domini-wrap" id="domini-wrap" style="background:white;border-radius:10px;padding:20px 24px;margin-bottom:28px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <h3 style="font-size:1rem;font-weight:700;color:#333;">Domini più frequenti per categoria</h3>
+        <select id="filtro-domini-tipo" style="padding:7px 11px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;background:#fafafa;">
+          <option value="">Tutte le categorie</option>
+          <option value="PDF diretto">PDF diretto</option>
+          <option value="Course Catalogue CINECA">Course Catalogue CINECA</option>
+          <option value="Pagina HTML">Pagina HTML (altro)</option>
+          <option value="Sistema gestionale">Sistema gestionale</option>
+        </select>
+      </div>
+      <div id="domini-container"></div>
+    </div>
+
+    <div class="results-wrap">
+      <div class="results-header">
+        <div><h3>Dettaglio insegnamenti</h3><span id="contatore"></span></div>
+        <div class="filter-row">
+          <select id="filtro-tipo">
+            <option value="">Tutti i tipi</option>
+            <option value="PDF diretto">PDF diretto</option>
+            <option value="Course Catalogue CINECA">Course Catalogue CINECA</option>
+            <option value="Pagina HTML">Pagina HTML (altro)</option>
+            <option value="Sistema gestionale">Sistema gestionale</option>
+            <option value="Non disponibile">Non disponibile</option>
+          </select>
+          <input type="text" id="filtro-testo" placeholder="🔍 Filtra per ateneo o insegnamento...">
+          <button class="btn-export" id="btn-export-csv">📥 Esporta CSV classificato</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Tipo link</th><th>Insegnamento</th><th>Ateneo</th><th>Docente</th><th>URL programma</th><th>Dettaglio classificazione</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div id="empty-state" class="empty-state" style="display:none;">Nessun risultato per i filtri selezionati.</div>
+      </div>
+    </div>
+    </div> <!-- /tab-classificazione -->
+
+    <!-- TAB: VERIFICA QUALITÀ -->
+    <div class="tab-pane" id="tab-verifica">
+      <div class="vq-toolbar">
+        <div>
+          <label>Categoria da verificare</label>
+          <select id="vq-filtro-tipo">
+            <option value="Pagina HTML">Pagina HTML (altro)</option>
+            <option value="Course Catalogue CINECA">Course Catalogue CINECA</option>
+            <option value="">Tutte le categorie con URL</option>
+          </select>
+        </div>
+        <div>
+          <label>Campioni per dominio</label>
+          <input type="number" id="vq-n-campioni" value="5" min="1" max="20" style="width:70px;">
+        </div>
+        <button class="btn-genera" onclick="generaCampione()">🎲 Genera campione</button>
+        <button class="btn-esporta-vq" id="btn-esporta-vq" onclick="esportaVQ()" disabled>📥 Esporta mappa affidabilità</button>
+      </div>
+      <div id="vq-info" style="font-size:0.85rem;color:#888;margin-bottom:16px;"></div>
+      <div id="vq-container"></div>
+    </div> <!-- /tab-verifica -->
+
+  </div> <!-- /section-stats -->
+</div>
+
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  document.getElementById('error-box').style.display = 'block';
+  document.getElementById('error-box').textContent = '⚠️ Errore JS: ' + msg + ' (riga ' + line + ')';
+  return false;
+};
+// ============================
+// CLASSIFICAZIONE URL
+// ============================
+// coursecatalogue.cineca.it: pagine HTML navigabili con pulsante "Salva PDF" nativo
+const PAGINE_HTML_FORZATE = [
+  'coursecatalogue.cineca.it'
+];
+
+const SISTEMI_GESTIONALI = [
+  'esse3','u-gov','ugov','infostud','gomp','aulaweb',
+  'portale.unige','portale.univpm','portaleservizi',
+  'studenti.uniroma','tuttoservizi','servizi.unibo','speedy.unito',
+  'personalbook','unistudium','beep.metid','kiro.',
+  'portale.unict','portale.unipa','fenix.','idp.','auth.','sso.',
+  'offf.cineca','off.cineca','registerme','registrar','gestione.','gestionedidattica',
+  'orari.','pica.','prex.','servizionline.','segreterie.'
+];
+
+function classificaURL(url) {
+  if (!url || url.trim() === '') {
+    return { tipo: 'Non disponibile', dettaglio: 'URL assente', badge: 'vuoto' };
+  }
+  const u = url.trim().toLowerCase();
+
+  if (u.endsWith('.pdf') || u.includes('.pdf?') || u.includes('/pdf/') ||
+      u.includes('getfile') || u.includes('download') && u.includes('pdf') ||
+      u.includes('allegato') && u.includes('pdf')) {
+    return { tipo: 'PDF diretto', dettaglio: 'Pattern PDF rilevato', badge: 'pdf' };
+  }
+
+  // Eccezioni: portali HTML navigabili anche se ospitati su infrastruttura CINECA
+  for (const p of PAGINE_HTML_FORZATE) {
+    if (u.includes(p)) {
+      return { tipo: 'Course Catalogue CINECA', dettaglio: 'Scheda strutturata + pulsante Salva PDF', badge: 'cineca' };
+    }
+  }
+
+  for (const p of SISTEMI_GESTIONALI) {
+    if (u.includes(p)) {
+      return { tipo: 'Sistema gestionale', dettaglio: 'Portale: ' + p, badge: 'gest' };
+    }
+  }
+
+  if (u.startsWith('javascript:') || (!u.startsWith('http') && !u.startsWith('//'))) {
+    return { tipo: 'Non disponibile', dettaglio: 'Link non navigabile', badge: 'vuoto' };
+  }
+
+  if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('//')) {
+    return { tipo: 'Pagina HTML', dettaglio: 'URL web navigabile', badge: 'html' };
+  }
+
+  return { tipo: 'Non disponibile', dettaglio: 'Formato non riconosciuto', badge: 'vuoto' };
+}
+
+// ============================
+// PARSING FILE XLS (HTML)
+// ============================
+
+/*
+  L'export di MyUniversity è un file .xls che internamente è HTML.
+  La struttura è:
+    <thead><tr><th>insegnamento</th><th>ateneo</th>...<th>url_ins</th><th>url_corso</th></tr></thead>
+    <tbody>
+      <tr><td>Biochimica</td><td>Bologna</td>...<td><a href="https://...">Programma</a></td>...</tr>
+    </tbody>
+  
+  Strategia: leggiamo il file come testo, lo parsiamo come HTML DOM,
+  troviamo gli indici delle colonne dall'intestazione, poi estraiamo
+  i valori — per le celle link, prendiamo l'href dell'<a> se presente.
+*/
+
+function parseXLSHTML(testo) {
+  // Crea un documento DOM temporaneo
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(testo, 'text/html');
+
+  const table = doc.querySelector('table');
+  if (!table) return null;
+
+  // Leggi intestazioni
+  const headerRow = table.querySelector('thead tr') || table.querySelector('tr');
+  if (!headerRow) return null;
+
+  const headers = Array.from(headerRow.querySelectorAll('th,td')).map(c => c.textContent.trim().toLowerCase());
+
+  const idxInsegnamento = headers.indexOf('insegnamento');
+  const idxAteneo       = headers.indexOf('ateneo');
+  const idxDocente      = headers.indexOf('docente');
+  const idxUrlIns       = headers.indexOf('url_ins');
+
+  if (idxUrlIns === -1) {
+    return { errore: `Colonna url_ins non trovata. Colonne presenti: ${headers.join(', ')}` };
+  }
+
+  // Leggi righe dati
+  const righe = [];
+  const rows = table.querySelectorAll('tbody tr');
+
+  rows.forEach(row => {
+    const celle = row.querySelectorAll('td');
+    if (celle.length === 0) return;
+
+    // Estrai URL: se la cella ha un <a>, prendi l'href
+    let urlIns = '';
+    if (idxUrlIns < celle.length) {
+      const cella = celle[idxUrlIns];
+      const link = cella.querySelector('a');
+      if (link) {
+        urlIns = link.getAttribute('href') || link.href || '';
+      } else {
+        urlIns = cella.textContent.trim();
+        if (urlIns === '—' || urlIns === '-') urlIns = '';
+      }
+    }
+
+    const cls = classificaURL(urlIns);
+
+    righe.push({
+      insegnamento: idxInsegnamento >= 0 && celle[idxInsegnamento] ? celle[idxInsegnamento].textContent.trim() : '',
+      ateneo:       idxAteneo >= 0 && celle[idxAteneo] ? celle[idxAteneo].textContent.trim() : '',
+      docente:      idxDocente >= 0 && celle[idxDocente] ? celle[idxDocente].textContent.trim() : '',
+      url_ins:      urlIns,
+      tipo_link:    cls.tipo,
+      dettaglio:    cls.dettaglio,
+      badge:        cls.badge
+    });
+  });
+
+  return righe;
+}
+
+// ============================
+// STATO
+// ============================
+let tuttiRighe = [];
+
+// ============================
+// DRAG & DROP + FILE INPUT
+// ============================
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) leggiFile(f); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) leggiFile(e.target.files[0]); });
+
+function mostraErrore(msg) {
+  const box = document.getElementById('error-box');
+  box.textContent = '⚠️ ' + msg;
+  box.style.display = 'block';
+}
+
+function leggiFile(file) {
+  document.getElementById('error-box').style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const testo = e.target.result;
+
+      // Verifica che sia HTML (l'export di MyUniversity inizia con <html o con BOM)
+      const inizio = testo.replace(/^\uFEFF/, '').trimStart().substring(0, 200).toLowerCase();
+      if (!inizio.includes('<html') && !inizio.includes('<table')) {
+        mostraErrore('Il file non sembra essere un export HTML di MyUniversity. Assicurati di usare il file .xls prodotto dal pulsante "Export Excel".');
+        return;
+      }
+
+      const risultato = parseXLSHTML(testo);
+
+      if (!risultato) {
+        mostraErrore('Impossibile trovare una tabella nel file.');
+        return;
+      }
+      if (risultato.errore) {
+        mostraErrore(risultato.errore);
+        return;
+      }
+      if (!risultato.length) {
+        mostraErrore('Nessuna riga dati trovata nel file.');
+        return;
+      }
+
+      tuttiRighe = risultato;
+      aggiornaStats();
+      renderDomini();
+      renderTabella();
+      document.getElementById('section-stats').style.display = 'block';
+      dropZone.style.display = 'none';
+
+    } catch(err) {
+      mostraErrore('Errore nella lettura del file: ' + err.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+// ============================
+// DOMINI PER CATEGORIA
+// ============================
+const BADGE_COLORS = {
+  'PDF diretto':             { bg: '#dcfce7', color: '#166534' },
+  'Course Catalogue CINECA': { bg: '#ede9fe', color: '#5b21b6' },
+  'Pagina HTML':             { bg: '#dbeafe', color: '#1e3a8a' },
+  'Sistema gestionale':      { bg: '#ffedd5', color: '#7c2d12' },
+};
+
+function estraiDominio(url) {
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./, '');
+  } catch { return url.substring(0, 40); }
+}
+
+function renderDomini(filtroTipo) {
+  const container = document.getElementById('domini-container');
+  const tipiDaMostrare = filtroTipo
+    ? [filtroTipo]
+    : ['Course Catalogue CINECA', 'Pagina HTML', 'Sistema gestionale', 'PDF diretto'];
+
+  let html = '';
+
+  for (const tipo of tipiDaMostrare) {
+    const righe = tuttiRighe.filter(r => r.tipo_link === tipo && r.url_ins);
+    if (!righe.length) continue;
+
+    // Conta domini
+    const contaDomini = {};
+    righe.forEach(r => {
+      const d = estraiDominio(r.url_ins);
+      contaDomini[d] = (contaDomini[d] || 0) + 1;
+    });
+
+    const ordinati = Object.entries(contaDomini)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20);
+
+    const colori = BADGE_COLORS[tipo] || { bg: '#f3f4f6', color: '#333' };
+    const maxN = ordinati[0]?.[1] || 1;
+
+    html += `<div style="margin-bottom:24px;">`;
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <span style="background:${colori.bg};color:${colori.color};padding:3px 10px;border-radius:10px;font-size:0.75rem;font-weight:700;">${tipo}</span>
+      <span style="font-size:0.8rem;color:#888;">${righe.length} insegnamenti · ${ordinati.length} domini distinti</span>
+    </div>`;
+
+    html += `<div style="display:flex;flex-direction:column;gap:5px;">`;
+    for (const [dominio, n] of ordinati) {
+      const pct = ((n / righe.length) * 100).toFixed(1);
+      const barW = ((n / maxN) * 100).toFixed(1);
+      html += `<div style="display:grid;grid-template-columns:220px 1fr 50px 40px;align-items:center;gap:10px;font-size:0.8rem;">
+        <span style="font-family:monospace;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${dominio}">${dominio}</span>
+        <div style="background:#f3f4f6;border-radius:4px;height:14px;overflow:hidden;">
+          <div style="background:${colori.color};opacity:0.7;height:100%;width:${barW}%;border-radius:4px;"></div>
+        </div>
+        <span style="color:#555;text-align:right;font-weight:600;">${n}</span>
+        <span style="color:#aaa;text-align:right;">${pct}%</span>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  container.innerHTML = html || '<p style="color:#aaa;font-size:0.85rem;">Nessun dato disponibile per la selezione.</p>';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('filtro-domini-tipo');
+  if (sel) sel.addEventListener('change', e => renderDomini(e.target.value));
+});
+
+// ============================
+// STATISTICHE
+// ============================
+function aggiornaStats() {
+  const totale = tuttiRighe.length;
+  const counts = { 'PDF diretto': 0, 'Course Catalogue CINECA': 0, 'Pagina HTML': 0, 'Sistema gestionale': 0, 'Non disponibile': 0 };
+  tuttiRighe.forEach(r => { if (counts[r.tipo_link] !== undefined) counts[r.tipo_link]++; });
+
+  document.getElementById('s-total').textContent  = totale.toLocaleString('it-IT');
+  document.getElementById('s-pdf').textContent    = counts['PDF diretto'].toLocaleString('it-IT');
+  document.getElementById('s-cineca').textContent = counts['Course Catalogue CINECA'].toLocaleString('it-IT');
+  document.getElementById('s-html').textContent   = counts['Pagina HTML'].toLocaleString('it-IT');
+  document.getElementById('s-gest').textContent   = counts['Sistema gestionale'].toLocaleString('it-IT');
+  document.getElementById('s-vuoto').textContent  = counts['Non disponibile'].toLocaleString('it-IT');
+
+  const pct = k => totale ? ((counts[k] / totale) * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('p-pdf').textContent    = pct('PDF diretto');
+  document.getElementById('p-cineca').textContent = pct('Course Catalogue CINECA');
+  document.getElementById('p-html').textContent   = pct('Pagina HTML');
+  document.getElementById('p-gest').textContent   = pct('Sistema gestionale');
+  document.getElementById('p-vuoto').textContent  = pct('Non disponibile');
+
+  const bar = document.getElementById('progress-bar');
+  bar.innerHTML = [
+    ['PDF diretto',            'pb-pdf'],
+    ['Course Catalogue CINECA','pb-cineca'],
+    ['Pagina HTML',            'pb-html'],
+    ['Sistema gestionale',     'pb-gest'],
+    ['Non disponibile',        'pb-vuoto']
+  ].map(([k, cls]) => {
+    const w = totale ? (counts[k] / totale * 100).toFixed(2) : 0;
+    return w > 0 ? `<div class="${cls}" style="width:${w}%" title="${k}: ${counts[k]} (${pct(k)})"></div>` : '';
+  }).join('');
+}
+
+// ============================
+// TABELLA
+// ============================
+function righeVisibili() {
+  const ft = document.getElementById('filtro-tipo').value;
+  const fx = document.getElementById('filtro-testo').value.toLowerCase().trim();
+  return tuttiRighe.filter(r => {
+    if (ft && r.tipo_link !== ft) return false;
+    if (fx && !r.insegnamento.toLowerCase().includes(fx) && !r.ateneo.toLowerCase().includes(fx)) return false;
+    return true;
+  });
+}
+
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderTabella() {
+  const righe = righeVisibili();
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('empty-state');
+
+  document.getElementById('contatore').innerHTML = `<strong>${righe.length.toLocaleString('it-IT')}</strong> insegnamenti`;
+
+  if (!righe.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  const toShow = righe.slice(0, 2000);
+  tbody.innerHTML = toShow.map(r => {
+    const urlDisplay = r.url_ins
+      ? `<a href="${escH(r.url_ins)}" target="_blank" title="${escH(r.url_ins)}">${escH(r.url_ins.length > 55 ? r.url_ins.substring(0,55)+'…' : r.url_ins)}</a>`
+      : '<span style="color:#ccc;">—</span>';
+    return `<tr>
+      <td><span class="badge badge-${r.badge}">${escH(r.tipo_link)}</span></td>
+      <td>${escH(r.insegnamento)}</td>
+      <td>${escH(r.ateneo)}</td>
+      <td>${escH(r.docente)}</td>
+      <td class="url-cell">${urlDisplay}</td>
+      <td style="color:#888;font-size:0.75rem;">${escH(r.dettaglio)}</td>
+    </tr>`;
+  }).join('');
+
+  if (righe.length > 2000) {
+    tbody.innerHTML += `<tr><td colspan="6" style="text-align:center;padding:12px;color:#888;font-size:0.8rem;">⚠️ Prime 2.000 righe mostrate su ${righe.length.toLocaleString('it-IT')}. Usa i filtri per restringere.</td></tr>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ft = document.getElementById('filtro-tipo');
+  const fx = document.getElementById('filtro-testo');
+  const bc = document.getElementById('btn-export-csv');
+  if (ft) ft.addEventListener('change', renderTabella);
+  if (fx) fx.addEventListener('input', renderTabella);
+  if (bc) bc.addEventListener('click', () => {
+    if (!tuttiRighe.length) return;
+    const righe = righeVisibili();
+    const header = ['insegnamento','ateneo','docente','url_ins','tipo_link','dettaglio'];
+    const csv = [header.join(';')]
+      .concat(righe.map(r => [r.insegnamento,r.ateneo,r.docente,r.url_ins,r.tipo_link,r.dettaglio]
+        .map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(';')))
+      .join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `classificazione_link_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  const fd = document.getElementById('filtro-domini-tipo');
+  if (fd) fd.addEventListener('change', e => renderDomini(e.target.value));
+});
+
+// ============================
+// TAB SWITCHING
+// ============================
+function switchTab(nome) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('attivo'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('attivo'));
+  document.getElementById('tab-' + nome).classList.add('attivo');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.textContent.toLowerCase().includes(nome === 'classificazione' ? 'classif' : 'verif')) {
+      b.classList.add('attivo');
+    }
+  });
+}
+
+// ============================
+// VERIFICA QUALITÀ URL
+// ============================
+let vqVoti = {}; // { dominio: { url: 'ok'|'mid'|'bad' } }
+let vqCampione = []; // [ { dominio, url, insegnamento, ateneo } ]
+
+function generaCampione() {
+  const filtroTipo = document.getElementById('vq-filtro-tipo').value;
+  const nCampioni  = parseInt(document.getElementById('vq-n-campioni').value) || 5;
+
+  // Filtra righe con URL
+  const righe = tuttiRighe.filter(r => {
+    if (!r.url_ins) return false;
+    if (filtroTipo && r.tipo_link !== filtroTipo) return false;
+    return true;
+  });
+
+  if (!righe.length) {
+    document.getElementById('vq-container').innerHTML =
+      '<p style="color:#aaa;padding:20px;">Nessun URL disponibile per la categoria selezionata.</p>';
+    return;
+  }
+
+  // Raggruppa per dominio
+  const perDominio = {};
+  righe.forEach(r => {
+    const d = estraiDominio(r.url_ins);
+    if (!perDominio[d]) perDominio[d] = [];
+    perDominio[d].push(r);
+  });
+
+  // Campiona N per dominio (random)
+  vqCampione = [];
+  vqVoti = {};
+
+  const domini = Object.entries(perDominio)
+    .sort((a, b) => b[1].length - a[1].length); // ordina per frequenza
+
+  domini.forEach(([dominio, items]) => {
+    const shuffled = [...items].sort(() => Math.random() - 0.5);
+    const campione = shuffled.slice(0, nCampioni);
+    vqVoti[dominio] = {};
+    campione.forEach(r => {
+      vqCampione.push({ dominio, url: r.url_ins, insegnamento: r.insegnamento, ateneo: r.ateneo });
+    });
+  });
+
+  const nDomini = domini.length;
+  const nUrl = vqCampione.length;
+  document.getElementById('vq-info').innerHTML =
+    `<strong>${nDomini}</strong> domini · <strong>${nUrl}</strong> URL da verificare · Clicca "Apri" per vedere la pagina, poi esprimi il tuo giudizio.`;
+
+  renderVQ();
+  document.getElementById('btn-esporta-vq').disabled = false;
+}
+
+function renderVQ() {
+  const container = document.getElementById('vq-container');
+
+  // Raggruppa campione per dominio
+  const perDominio = {};
+  vqCampione.forEach(item => {
+    if (!perDominio[item.dominio]) perDominio[item.dominio] = [];
+    perDominio[item.dominio].push(item);
+  });
+
+  container.innerHTML = Object.entries(perDominio).map(([dominio, items]) => {
+    const voti = vqVoti[dominio] || {};
+    const nVotati = Object.keys(voti).length;
+    const nOk  = Object.values(voti).filter(v => v === 'ok').length;
+    const nMid = Object.values(voti).filter(v => v === 'mid').length;
+    const nIdx = Object.values(voti).filter(v => v === 'idx').length;
+    const nBad = Object.values(voti).filter(v => v === 'bad').length;
+    const totale = items.length;
+
+    // Score badge
+    let scoreBadge = '';
+    if (nVotati === 0) {
+      scoreBadge = `<span class="vq-score-badge vq-score-nd">non verificato</span>`;
+    } else {
+      const pctOk = nOk / nVotati;
+      const pctIdx = nIdx / nVotati;
+      const pctMid = nMid / nVotati;
+      if (pctOk >= 0.7)
+        scoreBadge = `<span class="vq-score-badge vq-score-ok">✅ Affidabile ${nOk}/${nVotati}</span>`;
+      else if (pctIdx >= 0.5)
+        scoreBadge = `<span class="vq-score-badge vq-score-idx">🔗 Pagina indice ${nIdx}/${nVotati}</span>`;
+      else if (pctMid >= 0.4)
+        scoreBadge = `<span class="vq-score-badge vq-score-mid">⚠️ Contenuto nascosto ${nMid}/${nVotati}</span>`;
+      else
+        scoreBadge = `<span class="vq-score-badge vq-score-bad">❌ URL errato ${nBad}/${nVotati}</span>`;
+      // Aggiungi dettaglio completo
+      const parts = [];
+      if (nOk)  parts.push(`${nOk} completi`);
+      if (nMid) parts.push(`${nMid} nascosti`);
+      if (nIdx) parts.push(`${nIdx} indice`);
+      if (nBad) parts.push(`${nBad} errati`);
+      scoreBadge += ` <span style="font-size:0.72rem;color:#888;">(${parts.join(', ')})</span>`;
+    }
+
+    const urlRows = items.map((item, idx) => {
+      const voto = (vqVoti[dominio] || {})[item.url] || '';
+      const urlCorta = item.url.length > 70 ? item.url.substring(0, 70) + '…' : item.url;
+      return `<div class="vq-url-row">
+        <span class="vq-url-ins" title="${escH(item.insegnamento)}">${escH(item.insegnamento.substring(0,30))}${item.insegnamento.length>30?'…':''} · ${escH(item.ateneo)}</span>
+        <span class="vq-url-text" title="${escH(item.url)}">${escH(urlCorta)}</span>
+        <button class="btn-apri" onclick="window.open('${escH(item.url)}','_blank')">🔗 Apri</button>
+        <div class="vq-voti">
+          <button class="btn-voto ${voto==='ok' ?'sel-ok' :''}" onclick="setVoto('${escH(dominio)}','${escH(item.url)}','ok')">✅ Completo</button>
+          <button class="btn-voto ${voto==='mid'?'sel-mid':''}" onclick="setVoto('${escH(dominio)}','${escH(item.url)}','mid')">⚠️ Contenuto nascosto</button>
+          <button class="btn-voto ${voto==='idx'?'sel-idx':''}" onclick="setVoto('${escH(dominio)}','${escH(item.url)}','idx')">🔗 Pagina indice</button>
+          <button class="btn-voto ${voto==='bad'?'sel-bad':''}" onclick="setVoto('${escH(dominio)}','${escH(item.url)}','bad')">❌ URL errato</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="vq-dominio-card">
+      <div class="vq-dominio-header">
+        <div>
+          <span class="vq-dominio-nome">${escH(dominio)}</span>
+          <span class="vq-dominio-meta"> · ${totale} URL nel campione</span>
+        </div>
+        <div class="vq-score">${scoreBadge}</div>
+      </div>
+      ${urlRows}
+    </div>`;
+  }).join('');
+}
+
+function setVoto(dominio, url, voto) {
+  if (!vqVoti[dominio]) vqVoti[dominio] = {};
+  // Toggle: se già selezionato, deseleziona
+  if (vqVoti[dominio][url] === voto) {
+    delete vqVoti[dominio][url];
+  } else {
+    vqVoti[dominio][url] = voto;
+  }
+  renderVQ();
+}
+
+function estraiDominio(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); }
+  catch { return url.substring(0, 40); }
+}
+
+function esportaVQ() {
+  if (!vqCampione.length) return;
+
+  // Calcola score per dominio
+  const perDominio = {};
+  vqCampione.forEach(item => {
+    if (!perDominio[item.dominio]) perDominio[item.dominio] = { totale: 0, votati: 0, ok: 0, mid: 0, idx: 0, bad: 0 };
+    perDominio[item.dominio].totale++;
+    const voto = (vqVoti[item.dominio] || {})[item.url];
+    if (voto) {
+      perDominio[item.dominio].votati++;
+      perDominio[item.dominio][voto]++;
+    }
+  });
+
+  const totaliDataset = {};
+  tuttiRighe.forEach(r => {
+    if (!r.url_ins) return;
+    const d = estraiDominio(r.url_ins);
+    totaliDataset[d] = (totaliDataset[d] || 0) + 1;
+  });
+
+  const header = 'dominio;insegnamenti_dataset;campione_verificato;completi;contenuto_nascosto;pagina_indice;url_errati;giudizio';
+  const righe = Object.entries(perDominio).map(([dominio, s]) => {
+    let giudizio = 'Non verificato';
+    if (s.votati > 0) {
+      const pctOk  = s.ok  / s.votati;
+      const pctIdx = s.idx / s.votati;
+      const pctMid = s.mid / s.votati;
+      if (pctOk  >= 0.7) giudizio = 'Affidabile';
+      else if (pctIdx >= 0.5) giudizio = 'Pagina indice (click aggiuntivo)';
+      else if (pctMid >= 0.4) giudizio = 'Contenuto nascosto (JS)';
+      else giudizio = 'URL errato';
+    }
+    return `"${dominio}";${totaliDataset[dominio]||0};${s.votati};${s.ok};${s.mid};${s.idx};${s.bad};"${giudizio}"`;
+  });
+
+  const csv = '\uFEFF' + [header, ...righe].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `affidabilita_domini_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
