@@ -249,22 +249,33 @@ table.freq-table tr:hover td{background:#f9fafb;}
 ════════════════════════════════════════════════ -->
 <div id="dashboardView">
   <div class="dashboard-header">
-  <div>
-    <h1><i class="fas fa-sitemap" style="color:var(--green)"></i> I miei progetti</h1>
-    <p>Ogni progetto è un censimento indipendente per materia e classi di laurea.</p>
+    <div>
+      <h1 id="dashTabTitle"><i class="fas fa-sitemap" style="color:var(--green)"></i> Framework</h1>
+      <p id="dashTabSubtitle">Ogni framework è un censimento indipendente per materia e classi di laurea.</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center" id="dashTabActions">
+      <!-- popolato da JS in base alla scheda attiva -->
+    </div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center">
-    <button class="btn" style="background:#f59e0b;color:white" onclick="openBookIndexModal()">
-      <i class="fas fa-book"></i> JSON indice manuale
+
+  <div style="display:flex;gap:8px;margin-bottom:20px">
+    <button class="tab-btn active" id="dashTabBtnFramework" onclick="switchDashboardTab('framework')">
+      <i class="fas fa-sitemap"></i> Framework
     </button>
-    <button class="btn btn-primary" onclick="openNewProjectModal()">
-      <i class="fas fa-plus"></i> Nuovo progetto
+    <button class="tab-btn" id="dashTabBtnIndici" onclick="switchDashboardTab('indici')">
+      <i class="fas fa-book"></i> Indici
     </button>
   </div>
-</div>
+
   <div class="projects-grid" id="projectsGrid">
     <!-- popolato da JS -->
   </div>
+  <div class="projects-grid" id="indexesGrid" style="display:none">
+    <!-- popolato da JS -->
+  </div>
+
+  <input type="file" id="importIndexInput" accept=".json" multiple style="display:none"
+    onchange="importIndexFiles(this.files)">
 </div>
 
 <!-- ═══════════════════════════════════════════════
@@ -1119,13 +1130,49 @@ function getProjectStatus(project) {
 }
 
 // ════════════════════════════════════════════════
-//  DASHBOARD
+//  DASHBOARD — due schede (Framework / Indici): tenerle sempre entrambe
+//  visibili impilate avrebbe reso la pagina sempre più lunga crescendo
+//  entrambe le liste; qui se ne vede una alla volta, coi pulsanti di
+//  azione ("Nuovo framework" / "JSON indice manuale") spostati dentro
+//  la scheda a cui appartengono invece che mostrati tutti insieme.
 // ════════════════════════════════════════════════
+var DASHBOARD_TAB = 'framework';
+
+function switchDashboardTab(tab) {
+  DASHBOARD_TAB = tab;
+  document.getElementById('dashTabBtnFramework').classList.toggle('active', tab === 'framework');
+  document.getElementById('dashTabBtnIndici').classList.toggle('active', tab === 'indici');
+  document.getElementById('projectsGrid').style.display = tab === 'framework' ? 'grid' : 'none';
+  document.getElementById('indexesGrid').style.display  = tab === 'indici'    ? 'grid' : 'none';
+
+  if (tab === 'framework') {
+    document.getElementById('dashTabTitle').innerHTML =
+      '<i class="fas fa-sitemap" style="color:var(--green)"></i> Framework';
+    document.getElementById('dashTabSubtitle').textContent =
+      'Ogni framework è un censimento indipendente per materia e classi di laurea.';
+    document.getElementById('dashTabActions').innerHTML =
+      '<button class="btn btn-primary" onclick="openNewProjectModal()">'
+      + '<i class="fas fa-plus"></i> Nuovo framework</button>';
+  } else {
+    document.getElementById('dashTabTitle').innerHTML =
+      '<i class="fas fa-book" style="color:#f59e0b"></i> Indici';
+    document.getElementById('dashTabSubtitle').textContent =
+      'JSON di indice generati con "Crea JSON indice manuale", conservati qui indipendentemente dai framework.';
+    document.getElementById('dashTabActions').innerHTML =
+      '<button class="btn" style="background:#f59e0b;color:white" onclick="openBookIndexModal()">'
+      + '<i class="fas fa-book"></i> JSON indice manuale</button>'
+      + '<button class="btn btn-secondary" onclick="document.getElementById(\'importIndexInput\').click()">'
+      + '<i class="fas fa-file-import"></i> Importa indice</button>';
+  }
+}
+
 function renderDashboard() {
   document.getElementById('dashboardView').style.display   = 'block';
   document.getElementById('projectLayout').style.display   = 'none';
   document.getElementById('headerProject').style.display   = 'none';
   CURRENT_PROJECT = null;
+
+  switchDashboardTab(DASHBOARD_TAB);
 
   var projects = getAllProjects();
   var grid = document.getElementById('projectsGrid');
@@ -1139,10 +1186,10 @@ function renderDashboard() {
 
   var html = '';
 
-  // Card "Nuovo progetto"
+  // Card "Nuovo framework"
   html += '<div class="project-card project-card-new" onclick="openNewProjectModal()">'
         + '<i class="fas fa-plus"></i>'
-        + '<span>Nuovo progetto</span>'
+        + '<span>Nuovo framework</span>'
         + '</div>';
 
   projects.forEach(function(p) {
@@ -1172,6 +1219,171 @@ function renderDashboard() {
           + '    </button>'
           + '    <button class="btn btn-danger btn-sm"'
           + '      onclick="confirmDeleteProject(\'' + p.id + '\',\'' + escHtml(p.name) + '\')">'
+          + '      <i class="fas fa-trash"></i>'
+          + '    </button>'
+          + '  </div>'
+          + '</div>';
+  });
+
+  grid.innerHTML = html;
+  renderIndexesGrid();
+}
+
+// ════════════════════════════════════════════════
+//  INDICI MANUALI GENERATI (localStorage) — stessa idea dei progetti:
+//  senza questo, ogni JSON generato spariva alla chiusura del modale,
+//  scaricato o no. Qui restano elencati, riscaricabili, cancellabili.
+// ════════════════════════════════════════════════
+function getAllGeneratedIndexes() {
+  var indexes = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (key && key.startsWith('mfb_index_')) {
+      try {
+        var idx = JSON.parse(localStorage.getItem(key));
+        if (idx && idx.id) indexes.push(idx);
+      } catch(e) {}
+    }
+  }
+  indexes.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+  return indexes;
+}
+
+function saveGeneratedIndex(json) {
+  var id = 'idx_' + Date.now();
+  var entry = {
+    id:            id,
+    createdAt:     Date.now(),
+    title:         json.title,
+    author:        json.author,
+    publisher:     json.publisher,
+    subject:       json.subject,
+    chaptersCount: (json.index_chapters || []).length,
+    json:          json
+  };
+  localStorage.setItem('mfb_index_' + id, JSON.stringify(entry));
+  return entry;
+}
+
+function deleteGeneratedIndex(id) {
+  localStorage.removeItem('mfb_index_' + id);
+}
+
+function confirmDeleteIndex(id, title) {
+  if (confirm('Eliminare l\'indice "' + title + '"?\nL\'operazione è irreversibile.')) {
+    deleteGeneratedIndex(id);
+    renderIndexesGrid();
+    showToast('🗑️ Indice eliminato');
+  }
+}
+
+function downloadIndexById(id) {
+  var entry = JSON.parse(localStorage.getItem('mfb_index_' + id) || 'null');
+  if (!entry) return;
+  var blob = new Blob([JSON.stringify(entry.json, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (entry.json.id || entry.id) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('✅ JSON scaricato: ' + a.download);
+}
+
+function copyIndexById(id) {
+  var entry = JSON.parse(localStorage.getItem('mfb_index_' + id) || 'null');
+  if (!entry) return;
+  navigator.clipboard.writeText(JSON.stringify(entry.json, null, 2))
+    .then(function() { showToast('✅ JSON copiato negli appunti'); })
+    .catch(function() { showToast('❌ Errore copia', 'error'); });
+}
+
+function openIndexViewer(id) {
+  var entry = JSON.parse(localStorage.getItem('mfb_index_' + id) || 'null');
+  if (!entry) return;
+  document.getElementById('viewIndexTitle').textContent = entry.title || entry.id;
+  document.getElementById('viewIndexJson').textContent  = JSON.stringify(entry.json, null, 2);
+  document.getElementById('viewIndexCopyBtn').onclick     = function() { copyIndexById(id); };
+  document.getElementById('viewIndexDownloadBtn').onclick = function() { downloadIndexById(id); };
+  openModal('viewIndexModal');
+}
+
+// Importa uno o più JSON già generati in precedenza (es. scaricati prima che
+// esistesse questo elenco, o passati da un'altra macchina) — evita di dover
+// rigenerare un indice solo perché non era stato salvato qui.
+async function importIndexFiles(fileList) {
+  var files = Array.prototype.slice.call(fileList || []);
+  if (!files.length) return;
+
+  var imported = 0, failed = 0;
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var text   = await files[i].text();
+      var parsed = JSON.parse(text);
+      if (!parsed || !Array.isArray(parsed.index_chapters)) {
+        throw new Error('manca il campo "index_chapters"');
+      }
+      saveGeneratedIndex(parsed);
+      imported++;
+    } catch(e) {
+      console.error('Import fallito per ' + files[i].name + ':', e.message);
+      failed++;
+    }
+  }
+
+  renderIndexesGrid();
+  document.getElementById('importIndexInput').value = '';
+
+  if (imported && !failed) {
+    showToast('✅ ' + imported + ' indice/i importato/i');
+  } else if (imported && failed) {
+    showToast('⚠️ ' + imported + ' importati, ' + failed + ' non validi', 'warning');
+  } else {
+    showToast('❌ Nessun file valido (serve un JSON con "index_chapters")', 'error');
+  }
+}
+
+function renderIndexesGrid() {
+  var grid = document.getElementById('indexesGrid');
+  if (!grid) return;
+  var indexes = getAllGeneratedIndexes();
+
+  if (!indexes.length) {
+    grid.innerHTML = '<div style="color:var(--gray-3);font-size:13px;padding:8px 0">'
+      + 'Nessun indice generato finora. Usa "JSON indice manuale" qui sopra per crearne uno.</div>';
+    return;
+  }
+
+  var html = '';
+  indexes.forEach(function(idx) {
+    var date = idx.createdAt ? new Date(idx.createdAt).toLocaleDateString('it-IT') : '—';
+    html += '<div class="project-card" style="cursor:default">'
+          + '  <div class="project-status status-exported">'
+          + '    <i class="fas fa-check-circle"></i> Generato'
+          + '  </div>'
+          + '  <div class="project-name">' + escHtml(idx.title || idx.id) + '</div>'
+          + '  <div class="project-meta">'
+          + '    ✍️ ' + escHtml(idx.author || '—') + '<br>'
+          + '    🏢 ' + escHtml(idx.publisher || '—') + (idx.subject ? ' · ' + escHtml(idx.subject) : '') + '<br>'
+          + '    📖 ' + idx.chaptersCount + ' capitol' + (idx.chaptersCount===1?'o':'i') + '<br>'
+          + '    🕒 Generato: ' + date
+          + '  </div>'
+          + '  <div class="project-actions">'
+          + '    <button class="btn btn-primary btn-sm" style="flex:1"'
+          + '      onclick="openIndexViewer(\'' + idx.id + '\')">'
+          + '      <i class="fas fa-folder-open"></i> Apri'
+          + '    </button>'
+          + '    <button class="btn btn-secondary btn-sm"'
+          + '      onclick="downloadIndexById(\'' + idx.id + '\')">'
+          + '      <i class="fas fa-download"></i>'
+          + '    </button>'
+          + '    <button class="btn btn-secondary btn-sm"'
+          + '      onclick="copyIndexById(\'' + idx.id + '\')">'
+          + '      <i class="fas fa-copy"></i>'
+          + '    </button>'
+          + '    <button class="btn btn-danger btn-sm"'
+          + '      onclick="confirmDeleteIndex(\'' + idx.id + '\',\'' + escHtml(idx.title || idx.id) + '\')">'
           + '      <i class="fas fa-trash"></i>'
           + '    </button>'
           + '  </div>'
@@ -2915,19 +3127,23 @@ function showToast(msg, type) {
 //  MODULO INDICE MANUALE
 // ════════════════════════════════════════════════
 
-var BOOK_STEP     = 1;
-var BOOK_PDF_TEXT = '';
-var BOOK_JSON     = null;
+var BOOK_STEP           = 1;
+var BOOK_PDF_TEXT       = '';
+var BOOK_PDF_NUM_PAGES  = 0;
+var BOOK_PDF_PAGE_OFFSETS = null;
+var BOOK_JSON           = null;
 
 // ── Apri modale ──────────────────────────────
 function openBookIndexModal() {
-  BOOK_STEP     = 1;
-  BOOK_PDF_TEXT = '';
-  BOOK_JSON     = null;
+  BOOK_STEP              = 1;
+  BOOK_PDF_TEXT          = '';
+  BOOK_PDF_NUM_PAGES     = 0;
+  BOOK_PDF_PAGE_OFFSETS  = null;
+  BOOK_JSON              = null;
 
   // Reset campi
-  ['bookTitle','bookAuthor','bookPublisher',
-   'bookSubject','bookId','bookTextInput'].forEach(function(id) {
+  ['bookTitle','bookAuthor','bookPublisher','bookSubject','bookId',
+   'bookEdition','bookYear','bookVolume','bookTextInput'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -2935,6 +3151,8 @@ function openBookIndexModal() {
   document.getElementById('bookPdfStatus').innerHTML = '';
   document.getElementById('bookProgress').style.display = 'none';
   document.getElementById('bookJsonPreview').textContent = '';
+  document.getElementById('bookQualityWarnings').style.display = 'none';
+  document.getElementById('bookQualityWarnings').innerHTML = '';
 
   updateBookUI();
   switchBookTab('pdf');
@@ -2991,6 +3209,11 @@ async function bookStepNext() {
     var inputText = activeTab === 'pdf'
       ? BOOK_PDF_TEXT
       : document.getElementById('bookTextInput').value.trim();
+    // La mappa pagine e il totale pagine valgono solo se il testo in uso è
+    // davvero quello dello stesso PDF da cui sono stati calcolati — non se
+    // l'utente è passato alla scheda "Incolla testo" con un testo diverso.
+    var pageOffsets = activeTab === 'pdf' ? BOOK_PDF_PAGE_OFFSETS : null;
+    var totalPages  = activeTab === 'pdf' ? BOOK_PDF_NUM_PAGES : 0;
 
     if (!inputText || inputText.length < 50) {
       showToast('⚠️ Nessun testo disponibile. Carica un PDF o incolla il testo.', 'warning');
@@ -3000,7 +3223,7 @@ async function bookStepNext() {
       showToast('⚠️ Inserisci la chiave API nelle impostazioni', 'warning');
       openModal('settingsModal'); return;
     }
-    await generateBookJson(inputText);
+    await generateBookJson(inputText, pageOffsets, totalPages);
   }
 }
 
@@ -3034,12 +3257,17 @@ async function extractFullPdfText(file) {
   var buf  = await file.arrayBuffer();
   var pdf  = await pdfjsLib.getDocument({data: buf}).promise;
   var text = '';
+  // pageOffsets[p] = offset in "text" dove inizia il contenuto della pagina PDF p (1-based).
+  // Permette, più avanti, di tagliare il testo sorgente sulle pagine REALI di un gruppo di
+  // capitoli invece che su un numero arbitrario di caratteri.
+  var pageOffsets = { 1: 0 };
   for (var p = 1; p <= pdf.numPages; p++) {
+    pageOffsets[p] = text.length;
     var page    = await pdf.getPage(p);
     var content = await page.getTextContent();
     text += content.items.map(function(i){ return i.str; }).join(' ') + '\n';
   }
-  return text.trim();
+  return { text: text.trim(), numPages: pdf.numPages, pageOffsets: pageOffsets };
 }
 async function handleBookPdf(file) {
   if (!file) return;
@@ -3052,7 +3280,8 @@ async function handleBookPdf(file) {
     + '</div>';
 
   try {
-    var text = await extractFullPdfText(file);
+    var extracted = await extractFullPdfText(file);
+    var text      = extracted.text;
 
     // Verifica se il testo è sufficiente
     if (!text || text.length < 100) {
@@ -3070,19 +3299,23 @@ async function handleBookPdf(file) {
         + 'Aprilo in Word o Acrobat, copia il testo dell\'indice e usa il tab '
         + '<strong>"Incolla testo"</strong>.</div></div>';
       statusEl.innerHTML += callout;
-      BOOK_PDF_TEXT = '';
+      BOOK_PDF_TEXT         = '';
+      BOOK_PDF_NUM_PAGES    = 0;
+      BOOK_PDF_PAGE_OFFSETS = null;
       return;
     }
 
     // Testo estratto correttamente
-    BOOK_PDF_TEXT = text;
+    BOOK_PDF_TEXT         = text;
+    BOOK_PDF_NUM_PAGES    = extracted.numPages;
+    BOOK_PDF_PAGE_OFFSETS = extracted.pageOffsets;
     statusEl.innerHTML =
       '<div class="file-item done">'
       + '<div class="file-icon">✅</div>'
       + '<div class="file-info">'
       + '<div class="file-name">' + escHtml(file.name) + '</div>'
       + '<div class="file-meta">Testo estratto: '
-      + text.length + ' caratteri — pronto per la generazione.</div>'
+      + text.length + ' caratteri, ' + extracted.numPages + ' pagine — pronto per la generazione.</div>'
       + '</div></div>';
 
   } catch(e) {
@@ -3092,12 +3325,347 @@ async function handleBookPdf(file) {
       + '<div class="file-info"><div class="file-name">' + escHtml(file.name) + '</div>'
       + '<div class="file-meta">Errore: ' + e.message + '</div>'
       + '</div></div>';
-    BOOK_PDF_TEXT = '';
+    BOOK_PDF_TEXT         = '';
+    BOOK_PDF_NUM_PAGES    = 0;
+    BOOK_PDF_PAGE_OFFSETS = null;
   }
 }
 
+// ── Editore "proprio" (Zanichelli/CEA) — Atlante riconosce un manuale
+// "proprio" confrontando publisher, carattere per carattere, contro
+// clienti.editore_proprio, che vale "Zanichelli-CEA" da quando le due
+// stringhe storiche "Zanichelli" e "CEA" sono state unificate. Un nuovo
+// manuale scritto onestamente come "Zanichelli" o "CEA" non farebbe match
+// e verrebbe scambiato per competitor in tutte le analisi — si normalizza
+// qui, alla fonte, invece di doverlo ricordare a ogni inserimento in Atlante.
+function normalizePublisher(v) {
+  var key = (v || '').trim().toLowerCase();
+  if (key === 'zanichelli' || key === 'cea') return 'Zanichelli-CEA';
+  return v;
+}
+
+// Divide un testo lungo in blocchi consecutivi, spezzando su un a-capo
+// (mai a metà riga) — serve a restare sotto un budget di caratteri per
+// chiamata senza mai perdere del testo, a differenza di un troncamento fisso.
+function splitTextIntoChunks(text, maxLen) {
+  if (text.length <= maxLen) return [text];
+  var chunks = [];
+  var start = 0;
+  while (start < text.length) {
+    var end = Math.min(start + maxLen, text.length);
+    if (end < text.length) {
+      var lastBreak = text.lastIndexOf('\n', end);
+      if (lastBreak > start) end = lastBreak;
+    }
+    chunks.push(text.slice(start, end));
+    start = end;
+  }
+  return chunks;
+}
+
+// Chiamata OpenAI condivisa da Step 1 e Step 2: stessa richiesta, stesso
+// parsing tollerante (il modello a volte avvolge il JSON in markdown).
+async function chatJsonCompletion(systemPrompt, userPrompt, maxTokens, label) {
+  var r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + SETTINGS.apiKey
+    },
+    body: JSON.stringify({
+      model: SETTINGS.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt }
+      ],
+      temperature: 0.1,
+      max_tokens: maxTokens
+    })
+  });
+  if (!r.ok) throw new Error(label + ' error: ' + r.status);
+  var d   = await r.json();
+  var raw = d.choices[0].message.content.trim();
+  try {
+    var m = raw.match(/\{[\s\S]*\}/);
+    return JSON.parse(m ? m[0] : raw);
+  } catch(e) {
+    throw new Error(label + ' risposta non valida: ' + raw.substring(0, 200));
+  }
+}
+
+// Un fallimento isolato di una singola chiamata (errore di rete, rate limit,
+// risposta troncata per caso) oggi azzera in silenzio tutto il gruppo di
+// capitoli o di testo a cui appartiene — osservato concretamente su un
+// gruppo di 3 capitoli finiti con sezioni vuote. Un solo nuovo tentativo,
+// raramente colpito dallo stesso problema, riduce di molto quanto spesso
+// il problema si presenta, senza nascondere l'errore se si ripete davvero.
+async function chatJsonCompletionWithRetry(systemPrompt, userPrompt, maxTokens, label, retries) {
+  var attempts = (retries || 0) + 1;
+  var lastError;
+  for (var i = 0; i < attempts; i++) {
+    try {
+      return await chatJsonCompletion(systemPrompt, userPrompt, maxTokens, label);
+    } catch(e) {
+      lastError = e;
+      if (i < attempts - 1) {
+        console.warn(label + ' tentativo ' + (i+1) + ' fallito, riprovo:', e.message);
+        await new Promise(function(resolve){ setTimeout(resolve, 800); });
+      }
+    }
+  }
+  throw lastError;
+}
+
+// Taglia il testo esattamente sulle pagine PDF reali (fromPage incluso,
+// toPage escluso) invece che su un numero arbitrario di caratteri: elimina
+// alla radice il rischio che il contenuto vero di un capitolo cada fuori
+// dal blocco di testo inviato al modello — non serve più indovinare quanto
+// testo "di margine" aggiungere.
+function sliceTextByPageRange(text, pageOffsets, fromPage, toPage) {
+  var startOffset = pageOffsets[fromPage] != null ? pageOffsets[fromPage] : 0;
+  var endOffset   = (toPage != null && pageOffsets[toPage] != null) ? pageOffsets[toPage] : text.length;
+  return text.slice(startOffset, endOffset);
+}
+
+// Verifica deterministica, non affidata al modello: nel testo grezzo di un
+// capitolo i marcatori di sezione "N.X" compaiono in chiaro (es. "19.3").
+// Cercandoli con una regex sappiamo con certezza quali sezioni esistono
+// davvero, invece di dedurlo in modo statistico dal numero di elementi
+// restituiti — è questo che permette di scoprire con precisione COSA manca,
+// non solo che "sembra poco".
+// Elenco di base noto per esperienza diretta (Zanichelli/Ceccarelli) — resta
+// come rete di sicurezza, ma NON è più l'unica fonte: si unisce a quanto
+// scoperto automaticamente libro per libro da discoverRecurringLabels(),
+// così un editore diverso (Pearson, Piccin, McGraw-Hill...) con un lessico
+// tutto suo non lascia la verifica a mani vuote.
+var KNOWN_FIXED_LABELS      = ['NUCLEI FONDANTI', 'CONCETTI CHIAVE', 'RISORSE DIGITALI'];
+var KNOWN_NUMBERED_PREFIXES = ['SALUTE E MEDICINA'];
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// I box (es. "SALUTE E MEDICINA x.y") usano la stessa numerazione "N.X" della
+// sezione a cui si affiancano: un'occorrenza subito preceduta da un'etichetta
+// di box nota è quella del box, non una sezione vera, e va esclusa — altrimenti
+// sembra che "6.1" sia già presente anche quando nel risultato c'è solo il
+// titolo del box al posto di quello giusto (bug osservato col capitolo 6).
+function findExpectedSectionNumbers(text, chapterNumber, numberedPrefixes) {
+  var allPrefixes = KNOWN_NUMBERED_PREFIXES.concat(numberedPrefixes || [])
+    .filter(function(v, i, arr){ return arr.indexOf(v) === i; });
+  var boxLabelRe = new RegExp('(?:' + allPrefixes.map(escapeRegExp).join('|') + '|SCHEDA|BOX|APPROFONDIMENTO)\\s*$', 'i');
+
+  var re = new RegExp('\\b' + chapterNumber + '\\.(\\d+)\\b', 'g');
+  var found = [];
+  var seen = {};
+  var m;
+  while ((m = re.exec(text)) !== null) {
+    var before = text.slice(Math.max(0, m.index - 40), m.index);
+    if (boxLabelRe.test(before)) continue;
+    var num = chapterNumber + '.' + m[1];
+    if (!seen[num]) { seen[num] = true; found.push(num); }
+  }
+  return found;
+}
+
+// Stesso principio delle sezioni numerate, esteso ai box numerati e alle
+// etichette fisse ricorrenti (note + scoperte automaticamente per questo libro):
+// cercarle nel testo del capitolo e confrontarle con quanto estratto, invece
+// di scoprirne l'assenza solo indirettamente da un conteggio statistico.
+function findExpectedBoxAndBoilerplate(text, chapterNumber, fixedLabels, numberedPrefixes) {
+  var allFixed    = KNOWN_FIXED_LABELS.concat(fixedLabels || [])
+    .filter(function(v, i, arr){ return arr.indexOf(v) === i; });
+  var allPrefixes = KNOWN_NUMBERED_PREFIXES.concat(numberedPrefixes || [])
+    .filter(function(v, i, arr){ return arr.indexOf(v) === i; });
+
+  var found = [];
+  var seen = {};
+
+  allPrefixes.forEach(function(prefix) {
+    var boxRe = new RegExp(escapeRegExp(prefix) + '\\s+(\\d+)\\.(\\d+)', 'gi');
+    var m;
+    while ((m = boxRe.exec(text)) !== null) {
+      if (Number(m[1]) !== Number(chapterNumber)) continue; // box di un altro capitolo, ignoralo
+      var label = prefix + ' ' + m[1] + '.' + m[2];
+      if (!seen[label]) { seen[label] = true; found.push(label); }
+    }
+  });
+
+  allFixed.forEach(function(label) {
+    var pattern = label.split(/\s+/).map(escapeRegExp).join('\\s+');
+    var re = new RegExp('\\b' + pattern + '\\b', 'i');
+    if (re.test(text) && !seen[label]) { seen[label] = true; found.push(label); }
+  });
+
+  return found;
+}
+
+// Scoperta automatica delle etichette ricorrenti di QUESTO libro: invece di
+// chiedere all'utente di sapere in anticipo cosa cercare (impossibile, è
+// esattamente ciò che lo script dovrebbe scoprire), cerca nel testo frasi in
+// MAIUSCOLO di 2-4 parole che si ripetono per un numero di capitoli sufficiente
+// a sembrare una struttura del libro — sia fisse (es. "NUCLEI FONDANTI") sia
+// seguite da una numerazione "N.X" che varia capitolo per capitolo (es. box
+// come "SALUTE E MEDICINA N.X", "FOCUS N.X", qualunque sia il nome usato).
+function discoverRecurringLabels(text, numChapters) {
+  var phraseRe = /\b((?:[A-ZÀÈÉÌÒÙ]{2,}(?:['’][A-ZÀÈÉÌÒÙ]+)?\s+){1,3}[A-ZÀÈÉÌÒÙ]{2,})(\s+\d+\.\d+)?/g;
+  var fixedCounts   = {};
+  var numberedFound = {};
+  var m;
+  while ((m = phraseRe.exec(text)) !== null) {
+    var phrase = m[1].replace(/\s+/g, ' ').trim();
+    if (phrase.split(' ').length < 2) continue;
+    if (m[2]) {
+      numberedFound[phrase] = numberedFound[phrase] || {};
+      numberedFound[phrase][m[2].trim()] = true;
+    } else {
+      fixedCounts[phrase] = (fixedCounts[phrase] || 0) + 1;
+    }
+  }
+
+  var minOccurrences = Math.max(2, Math.round((numChapters || 1) * 0.3));
+  var fixed = [];
+  var numberedPrefixes = [];
+  Object.keys(fixedCounts).forEach(function(phrase) {
+    if (fixedCounts[phrase] >= minOccurrences) fixed.push(phrase);
+  });
+  Object.keys(numberedFound).forEach(function(phrase) {
+    if (Object.keys(numberedFound[phrase]).length >= minOccurrences) numberedPrefixes.push(phrase);
+  });
+
+  return { fixed: dropSubstringFragments(fixed), numberedPrefixes: dropSubstringFragments(numberedPrefixes) };
+}
+
+// Un'etichetta stilizzata (badge colorato, iniziale grande) a volte viene
+// spezzata da pdf.js — l'iniziale finisce su un elemento di testo a parte e
+// il resto compare come una frase a sé (es. "GUIDA ALLO STUDIO" spezzata in
+// "UIDA ALLO STUDIO"). Il frammento non comparirà mai per intero nell'output
+// del modello, quindi genererebbe un avviso permanente e mai risolvibile su
+// ogni capitolo: se una frase scoperta è contenuta in un'altra più lunga,
+// si tiene solo quella più lunga.
+function dropSubstringFragments(phrases) {
+  var sorted = phrases.slice().sort(function(a, b){ return b.length - a.length; });
+  var kept = [];
+  sorted.forEach(function(phrase) {
+    var isFragment = kept.some(function(longer){ return longer.indexOf(phrase) !== -1; });
+    if (!isFragment) kept.push(phrase);
+  });
+  return kept;
+}
+
+// Un'intestazione di "parte/sezione/unità" numerata (es. "3 ELEMENTI DI
+// PSICOPATOLOGIA") può essere scambiata dallo Step 1 per un capitolo vero,
+// specialmente se seguita da una propria "Introduzione" con autori diversi
+// — è già successo: il capitolo 1 di un libro è finito con titolo e pagina
+// della parte, non del vero primo capitolo. Un capitolo vero è sempre
+// preceduto da un marcatore esplicito "CAPITOLO N" (o "CAP."/"CHAPTER N"):
+// se il titolo assegnato non compare vicino a quel marcatore per il numero
+// dichiarato, il capitolo è sospetto e va verificato.
+function findChapterMarkerWindow(text, chapterNumber) {
+  var markerRe = new RegExp('\\b(?:CAPITOLO|CAP\\.|CHAPTER)\\s+' + chapterNumber + '\\b', 'i');
+  var m = markerRe.exec(text);
+  if (!m) return null;
+  return text.slice(m.index, Math.min(text.length, m.index + 400));
+}
+
+function chapterTitleMatchesMarker(chapterTitle, markerWindowText) {
+  var titleWords = (chapterTitle || '').replace(/\s+/g, ' ').trim().split(' ').slice(0, 4).join(' ');
+  if (!titleWords) return true;
+  return markerWindowText.replace(/\s+/g, ' ').toLowerCase().indexOf(titleWords.toLowerCase()) !== -1;
+}
+
+// Controlli automatici di completezza — prima lasciavamo passare qualunque
+// risultato con lo stesso messaggio di successo, anche un indice tagliato
+// a metà (è quello che è successo con un libro di 31 capitoli fermatosi
+// silenziosamente al 17). Restano avvisi non bloccanti: l'utente decide.
+function checkIndexQuality(chapters, totalPages, unresolvedGaps) {
+  var warnings = [];
+  if (!chapters.length) return warnings;
+
+  // Segnalazioni precise (numeri di sezione trovati per certo nel testo del
+  // PDF ma assenti anche dopo un tentativo mirato) vengono prima e sostituiscono,
+  // per quei capitoli, l'avviso statistico più generico basato sulla mediana.
+  var gapNumbers = [];
+  (unresolvedGaps || []).forEach(function(g) {
+    gapNumbers.push(g.number);
+    warnings.push(
+      'Capitolo ' + g.number + ': le sezioni ' + g.missing.join(', ') + ' compaiono nel testo del PDF '
+      + 'ma non sono state estratte nemmeno dopo un secondo tentativo mirato — verifica e aggiungile a mano.'
+    );
+  });
+
+  if (totalPages) {
+    var lastPage = chapters[chapters.length - 1].page_start || 0;
+    if (lastPage > 0 && lastPage < totalPages * 0.7) {
+      warnings.push(
+        'Il volume ha ' + totalPages + ' pagine ma l\'ultimo capitolo estratto parte da pagina '
+        + lastPage + ': l\'indice potrebbe essere incompleto, verifica il PDF o il testo incollato.'
+      );
+    }
+  }
+
+  var numbers = chapters.map(function(c){ return c.number; });
+  for (var i = 1; i < numbers.length; i++) {
+    if (numbers[i] - numbers[i-1] > 1) {
+      warnings.push('Salto nella numerazione dei capitoli: dal ' + numbers[i-1] + ' al ' + numbers[i] + '.');
+    }
+  }
+
+  var titleCount = {};
+  chapters.forEach(function(c) {
+    var t = (c.title || '').trim().toLowerCase();
+    if (!t) return;
+    titleCount[t] = (titleCount[t] || 0) + 1;
+  });
+  Object.keys(titleCount).forEach(function(t) {
+    if (titleCount[t] > 1) {
+      warnings.push('Titolo di capitolo ripetuto ' + titleCount[t] + ' volte: "' + t + '" — probabile errore di estrazione.');
+    }
+  });
+
+  // Un capitolo "vero" ma svuotato di sezioni non viene preso dai controlli
+  // sopra (non manca, non è duplicato) — capita quando la Chiamata 2 diventa
+  // via via meno accurata sui gruppi di capitoli più avanti nel libro pur
+  // restituendo JSON valido. Lo si vede confrontando quante sezioni ha
+  // ciascun capitolo con la mediana del libro.
+  var sectionCounts = chapters.map(function(c){ return (c.sections || []).length; });
+  var sortedCounts  = sectionCounts.slice().sort(function(a,b){ return a - b; });
+  var mid = Math.floor(sortedCounts.length / 2);
+  var median = sortedCounts.length % 2
+    ? sortedCounts[mid]
+    : (sortedCounts[mid - 1] + sortedCounts[mid]) / 2;
+  if (median >= 3) {
+    var thin = [];
+    chapters.forEach(function(c) {
+      if (gapNumbers.indexOf(c.number) !== -1) return; // già segnalato sopra con dettaglio preciso
+      if ((c.sections || []).length < median / 2) thin.push(c.number);
+    });
+    if (thin.length) {
+      warnings.push(
+        'Capitoli con molte meno sezioni della mediana del libro (' + median.toFixed(1) + '): '
+        + thin.join(', ') + ' — probabile estrazione incompleta per questi capitoli, verifica il PDF.'
+      );
+    }
+  }
+
+  return warnings;
+}
+
+function renderIndexQualityWarnings(warnings) {
+  var el = document.getElementById('bookQualityWarnings');
+  if (!el) return;
+  if (!warnings.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div class="callout warning">'
+    + '<span class="ci">⚠️</span>'
+    + '<div><strong>Possibile indice incompleto o anomalo:</strong><ul style="margin:6px 0 0 18px;padding:0">'
+    + warnings.map(function(w){ return '<li>' + escHtml(w) + '</li>'; }).join('')
+    + '</ul></div></div>';
+}
+
 // ── Generazione JSON con AI ──────────────────
-async function generateBookJson(inputText) {
+async function generateBookJson(inputText, pageOffsets, totalPages) {
   var btn = document.getElementById('btnBookNext');
   btn.disabled = true;
   document.getElementById('bookProgress').style.display = 'block';
@@ -3113,8 +3681,11 @@ async function generateBookJson(inputText) {
       id:        document.getElementById('bookId').value.trim(),
       title:     document.getElementById('bookTitle').value.trim(),
       author:    document.getElementById('bookAuthor').value.trim(),
-      publisher: document.getElementById('bookPublisher').value.trim(),
+      publisher: normalizePublisher(document.getElementById('bookPublisher').value.trim()),
       subject:   document.getElementById('bookSubject').value.trim(),
+      edition:   document.getElementById('bookEdition').value.trim(),
+      year:      parseInt(document.getElementById('bookYear').value, 10) || null,
+      volume:    parseInt(document.getElementById('bookVolume').value, 10) || null,
       type:      document.getElementById('bookType').value
     };
 
@@ -3123,53 +3694,109 @@ async function generateBookJson(inputText) {
       + 'Ricevi il testo grezzo di un indice di un manuale universitario. '
       + 'Rispondi SOLO con un oggetto JSON valido, senza markdown, senza spiegazioni.';
 
-    // ── CHIAMATA 1: estrai lista capitoli ──────────────
-    setProgress(15, 'Step 1/2 — Estrazione capitoli...');
+    // Il testo intero dell'indice, mai troncato: un libro con un indice
+    // lungo (es. 30+ capitoli) viene diviso in blocchi che coprono TUTTO
+    // il testo, invece del vecchio taglio fisso ai primi 25.000 caratteri
+    // che faceva sparire in silenzio i capitoli oltre quel punto.
+    var CHUNK_SIZE = 60000;
+    var textChunks = splitTextIntoChunks(inputText, CHUNK_SIZE);
 
-    var prompt1 =
-      'Questo è il testo grezzo dell\'indice di "' + meta.title + '" di ' + meta.author + '.\n\n'
-      + 'TESTO:\n' + inputText.substring(0, 25000) + '\n\n'
-      + 'ISTRUZIONI:\n'
-      + '1. Estrai SOLO i capitoli principali (non le sezioni)\n'
-      + '2. Per ogni capitolo: number (intero), title (stringa), page_start (intero)\n'
-      + '3. Ignora prefazioni, bibliografie, indici analitici\n'
-      + '4. Rispondi SOLO con questo JSON:\n'
-      + '{"chapters":[{"number":1,"title":"...","page_start":1}]}';
+    // ── CHIAMATA 1: estrai lista capitoli, un blocco di testo alla volta ──
+    var chaptersByNumber = {};
+    for (var tci = 0; tci < textChunks.length; tci++) {
+      var chunkPct = 15 + Math.round((tci / textChunks.length) * 20);
+      setProgress(chunkPct, 'Step 1/2 — Estrazione capitoli' +
+        (textChunks.length > 1 ? ' (blocco ' + (tci+1) + '/' + textChunks.length + ')' : '') + '...');
 
-    var r1 = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SETTINGS.apiKey
-      },
-      body: JSON.stringify({
-        model: SETTINGS.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user',   content: prompt1 }
-        ],
-        temperature: 0.1,
-        max_tokens: 2000
-      })
-    });
-    if (!r1.ok) throw new Error('API Step1 error: ' + r1.status);
-    var d1  = await r1.json();
-    var raw1 = d1.choices[0].message.content.trim();
-    var step1Result;
-    try {
-      var m1 = raw1.match(/\{[\s\S]*\}/);
-      step1Result = JSON.parse(m1 ? m1[0] : raw1);
-    } catch(e) {
-      throw new Error('Step1 risposta non valida: ' + raw1.substring(0, 200));
+      var chunkNote = textChunks.length > 1
+        ? '\n\nNOTA: questo è il blocco ' + (tci+1) + ' di ' + textChunks.length + ' in cui è stato diviso '
+          + 'il testo completo dell\'indice (troppo lungo per una sola richiesta). Estrai SOLO i capitoli '
+          + 'che compaiono per intero in QUESTO blocco.'
+        : '';
+
+      var prompt1 =
+        'Questo è il testo grezzo dell\'indice di "' + meta.title + '" di ' + meta.author + '.\n\n'
+        + 'TESTO:\n' + textChunks[tci] + chunkNote + '\n\n'
+        + 'ISTRUZIONI:\n'
+        + '1. Estrai SOLO i capitoli principali (non le sezioni)\n'
+        + '2. Per ogni capitolo: number (intero), title (stringa), page_start (intero)\n'
+        + '3. Ignora prefazioni, bibliografie, indici analitici\n'
+        + '4. ATTENZIONE: alcuni indici raggruppano più capitoli sotto un\'intestazione di "parte/sezione/unità" '
+        + 'numerata (es. "1 NOME DELLA PARTE", "PARTE II", "SEZIONE 3"), spesso seguita da una propria breve '
+        + '"Introduzione" con autori diversi da quelli dei capitoli veri. NON trattare questa intestazione come un '
+        + 'capitolo: un capitolo vero è sempre introdotto esplicitamente dalla parola "CAPITOLO" (o "CHAPTER"/"CAP.") '
+        + 'seguita dal numero. Se una parte e un capitolo sembrano condividere lo stesso numero, usa SEMPRE il numero '
+        + 'e il titolo del capitolo vero (quello dopo "CAPITOLO"), mai quelli della parte.\n'
+        + '5. Rispondi SOLO con questo JSON:\n'
+        + '{"chapters":[{"number":1,"title":"...","page_start":1}]}';
+
+      try {
+        var step1Result = await chatJsonCompletionWithRetry(systemPrompt, prompt1, 2000, 'Step1', 1);
+        (step1Result.chapters || []).forEach(function(c) {
+          if (c && c.number != null && !chaptersByNumber[c.number]) {
+            c._srcChunk = tci;
+            chaptersByNumber[c.number] = c;
+          }
+        });
+      } catch(e) {
+        console.error('Step1 blocco ' + (tci+1) + ' fallito:', e.message);
+      }
     }
-    var chapters = step1Result.chapters || [];
+
+    var chapters = Object.keys(chaptersByNumber)
+      .map(function(k){ return chaptersByNumber[k]; })
+      .sort(function(a,b){ return a.number - b.number; });
     if (!chapters.length) throw new Error('Nessun capitolo trovato');
+    setProgress(40, 'Trovati ' + chapters.length + ' capitoli — verifica intestazioni...');
+
+    // Verifica ogni capitolo contro un vero marcatore "CAPITOLO N" nel testo:
+    // se esiste un marcatore per questo numero ma il titolo assegnato non gli
+    // corrisponde, è quasi certamente il titolo di una parte/sezione più ampia
+    // (vedi commento su findChapterMarkerWindow) — un'unica chiamata mirata,
+    // solo per i capitoli sospetti, chiede titolo e pagina reali al modello.
+    for (var ck = 0; ck < chapters.length; ck++) {
+      var chToCheck = chapters[ck];
+      var markerWindow = findChapterMarkerWindow(inputText, chToCheck.number);
+      if (markerWindow && !chapterTitleMatchesMarker(chToCheck.title, markerWindow)) {
+        try {
+          var chapterFixPrompt =
+            'Nell\'indice di "' + meta.title + '" esiste un marcatore "CAPITOLO ' + chToCheck.number
+            + '" seguito da questo testo:\n\n' + markerWindow + '\n\n'
+            + 'Il titolo assegnato finora a questo capitolo ("' + chToCheck.title + '") non corrisponde a quanto segue '
+            + 'il marcatore: probabilmente è il titolo di una parte/sezione più ampia che raggruppa più capitoli, non '
+            + 'il titolo del capitolo vero.\n'
+            + 'Qual è il titolo REALE del capitolo ' + chToCheck.number + ' (quello subito dopo "CAPITOLO '
+            + chToCheck.number + '") e a quale pagina inizia?\n'
+            + 'Rispondi SOLO con questo JSON: {"title":"...","page_start":1}';
+          var chapterFix = await chatJsonCompletion(systemPrompt, chapterFixPrompt, 300, 'FixCapitolo' + chToCheck.number);
+          if (chapterFix && chapterFix.title) {
+            console.warn('Capitolo ' + chToCheck.number + ': titolo corretto da "' + chToCheck.title + '" a "' + chapterFix.title + '"');
+            chToCheck.title = chapterFix.title;
+            if (chapterFix.page_start) chToCheck.page_start = chapterFix.page_start;
+          }
+        } catch(e) {
+          console.warn('Verifica marcatore capitolo ' + chToCheck.number + ' fallita:', e.message);
+        }
+      }
+    }
+
     setProgress(40, 'Trovati ' + chapters.length + ' capitoli — Step 2/2 sezioni...');
 
+    // Scopre le etichette ricorrenti di QUESTO libro (box numerati ed
+    // etichette fisse) prima di verificare le sezioni — si somma, non
+    // sostituisce, a quanto già noto da esperienza diretta.
+    var discoveredLabels = discoverRecurringLabels(inputText, chapters.length);
+
     // ── CHIAMATA 2: estrai sezioni per ogni capitolo ──
-    // Dividiamo i capitoli in gruppi da 6 per non superare i token
-    var chunkSize = 6;
+    // Gruppi da 3 capitoli (non più 6): con box "SALUTE E MEDICINA" e
+    // boilerplate inclusi, 6 capitoli densi rischiavano di superare il
+    // budget di risposta e farla diventare via via meno completa sui
+    // gruppi successivi — sintomo osservato: sezioni corrette e complete
+    // fino a un certo capitolo, sempre più povere da lì in poi pur restando
+    // JSON valido (quindi mai intercettato da un errore).
+    var chunkSize = 3;
     var allChaptersWithSections = [];
+    var unresolvedGaps = []; // {number, missing:[...]} — sezioni certe dal PDF ma mai estratte
 
     for (var ci = 0; ci < chapters.length; ci += chunkSize) {
       var chunk = chapters.slice(ci, ci + chunkSize);
@@ -3180,49 +3807,141 @@ async function generateBookJson(inputText) {
         return 'Capitolo ' + c.number + ': "' + c.title + '"';
       }).join('\n');
 
+      // Testo sorgente: se abbiamo le pagine reali del PDF (pageOffsets), tagliamo
+      // esattamente dalla pagina di inizio di questo gruppo a quella del capitolo
+      // successivo — nessun margine indovinato, nessun rischio che il contenuto
+      // vero resti fuori dal blocco. Solo per il testo incollato a mano (nessun
+      // PDF, nessuna mappa pagine) resta il vecchio fallback a blocchi.
+      var srcText;
+      if (pageOffsets) {
+        var groupStartPage = Math.max(1, (chunk[0].page_start || 1) - 1);
+        var nextChapter    = chapters[ci + chunk.length];
+        var groupEndPage   = nextChapter ? nextChapter.page_start + 1 : null;
+        srcText = sliceTextByPageRange(inputText, pageOffsets, groupStartPage, groupEndPage);
+      } else {
+        var srcIndexes = chunk.map(function(c){ return c._srcChunk || 0; });
+        var minSrc = Math.min.apply(null, srcIndexes);
+        var maxSrc = Math.max.apply(null, srcIndexes);
+        srcText = textChunks.slice(minSrc, Math.min(maxSrc + 2, textChunks.length)).join('\n');
+      }
+
       var prompt2 =
         'Testo indice di "' + meta.title + '":\n\n'
-        + inputText.substring(0, 25000) + '\n\n'
+        + srcText + '\n\n'
         + 'Estrai le sezioni SOLO per questi capitoli:\n'
         + chapterList + '\n\n'
         + 'Per ogni sezione: number (stringa OBBLIGATORIAMENTE nel formato "N.X" es. "9.1", "9.2"), title (stringa in italiano con prima lettera maiuscola e resto minuscolo), page_start (intero).\n'
         + 'Ignora "Cartella", "ABC di Istologia", "TAVOLA" — solo sezioni principali.\n'
+        + 'Includi ANCHE, come voci separate, i riquadri "SALUTE E MEDICINA N.X" e "NUCLEI FONDANTI" quando presenti '
+        + '(usa il loro stesso numero, es. "SALUTE E MEDICINA 6.1", come number).\n'
+        + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" può condividere il numero "N.X" con la sezione a cui '
+        + 'è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fondere le due voci in una sola e non '
+        + 'scambiarne i titoli — ciascuna mantiene il proprio titolo esatto.\n'
         + 'Rispondi SOLO con questo JSON:\n'
         + '{"chapters":[{"number":1,"title":"...","page_start":1,"sections":[{"number":"1.1","title":"...","page_start":1}]}]}';
 
-      var r2 = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + SETTINGS.apiKey
-        },
-        body: JSON.stringify({
-          model: SETTINGS.model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user',   content: prompt2 }
-          ],
-          temperature: 0.1,
-          max_tokens: 3000
-        })
-      });
-      if (!r2.ok) throw new Error('API Step2 error: ' + r2.status);
-      var d2   = await r2.json();
-      var raw2 = d2.choices[0].message.content.trim();
+      var resultByNumber = {};
       try {
-        var m2 = raw2.match(/\{[\s\S]*\}/);
-        var step2Result = JSON.parse(m2 ? m2[0] : raw2);
-        allChaptersWithSections = allChaptersWithSections.concat(step2Result.chapters || []);
-      } catch(e) {
-        // Se il parsing fallisce per questo chunk, aggiungi i capitoli senza sezioni
-        chunk.forEach(function(c) {
-          allChaptersWithSections.push({ number: c.number, title: c.title, page_start: c.page_start, sections: [] });
+        var step2Result = await chatJsonCompletionWithRetry(systemPrompt, prompt2, 4096, 'Step2', 1);
+        (step2Result.chapters || []).forEach(function(rc) {
+          if (rc && rc.number != null) resultByNumber[rc.number] = rc;
         });
+      } catch(e) {
+        console.error('Step2 blocco capitoli ' + (ci+1) + '-' + Math.min(ci+chunkSize, chapters.length) + ' fallito:', e.message);
+        // Se la chiamata fallisce del tutto, i capitoli di questo gruppo restano
+        // senza sezioni qui sotto — la verifica per pagina che segue proverà comunque
+        // a recuperarli capitolo per capitolo, se abbiamo la mappa delle pagine.
+      }
+
+      // Verifica deterministica + correzione mirata, capitolo per capitolo: se
+      // conosciamo le pagine reali del PDF, controlliamo che ogni sezione "N.X"
+      // presente per certo nel testo di QUESTO capitolo sia davvero nel risultato.
+      // Se manca qualcosa, un secondo tentativo isolato su quel solo capitolo,
+      // con l'elenco esplicito di cosa cercare, ha molte più probabilità di
+      // riuscire di un'unica chiamata che deve coprire più capitoli insieme.
+      for (var lj = 0; lj < chunk.length; lj++) {
+        var reqCh = chunk[lj];
+        var got = resultByNumber[reqCh.number] ||
+          { number: reqCh.number, title: reqCh.title, page_start: reqCh.page_start, sections: [] };
+        got.sections = got.sections || [];
+
+        if (pageOffsets) {
+          var globalIdx      = ci + lj;
+          var chNextPage     = chapters[globalIdx + 1] ? chapters[globalIdx + 1].page_start : null;
+          var chRangeStart   = reqCh.page_start || 1;
+
+          // Una chiamata di gruppo copre più capitoli in un colpo solo: se il modello
+          // attribuisce per errore una voce (tipicamente boilerplate come "NUCLEI
+          // FONDANTI"/"CONCETTI CHIAVE") al capitolo sbagliato, la pagina di quella
+          // voce non può comunque cadere dentro l'intervallo di pagine reali di
+          // QUESTO capitolo — è un controllo deterministico, non serve indovinare:
+          // se la pagina è fuori range, la voce non è di questo capitolo e si scarta.
+          got.sections = got.sections.filter(function(s) {
+            var p = s.page_start;
+            if (p == null) return true;
+            if (p < chRangeStart) return false;
+            if (chNextPage != null && p >= chNextPage) return false;
+            return true;
+          });
+
+          var chapterOwnText   = sliceTextByPageRange(inputText, pageOffsets, chRangeStart, chNextPage);
+          var expectedNumbers  = findExpectedSectionNumbers(chapterOwnText, reqCh.number, discoveredLabels.numberedPrefixes)
+            .concat(findExpectedBoxAndBoilerplate(chapterOwnText, reqCh.number, discoveredLabels.fixed, discoveredLabels.numberedPrefixes));
+          var actualNumbers   = got.sections.map(function(s){ return s.number; });
+          var missingNumbers  = expectedNumbers.filter(function(n){ return actualNumbers.indexOf(n) === -1; });
+
+          if (missingNumbers.length) {
+            try {
+              var retryPrompt =
+                'Testo del capitolo ' + reqCh.number + ' ("' + reqCh.title + '") di "' + meta.title + '":\n\n'
+                + chapterOwnText + '\n\n'
+                + 'Il testo contiene sicuramente queste voci: ' + missingNumbers.join(', ') + '.\n'
+                + 'Estrai TUTTE le sezioni del capitolo (anche quelle eventualmente già note, non solo quelle elencate sopra), '
+                + 'inclusi eventuali riquadri "SALUTE E MEDICINA N.X" o "NUCLEI FONDANTI" come voci separate.\n'
+                + 'Per ogni sezione: number (stringa "N.X"), title (stringa in italiano, prima lettera maiuscola, resto minuscolo), page_start (intero).\n'
+                + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" può condividere il numero "N.X" con la sezione '
+                + 'a cui è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fonderle in una sola e non '
+                + 'scambiarne i titoli.\n'
+                + 'Rispondi SOLO con questo JSON:\n'
+                + '{"sections":[{"number":"' + reqCh.number + '.1","title":"...","page_start":1}]}';
+
+              var retryResult = await chatJsonCompletion(systemPrompt, retryPrompt, 2048, 'Step2-retry-cap' + reqCh.number);
+              var mergedByNumber = {};
+              got.sections.forEach(function(s){ mergedByNumber[s.number] = s; });
+              (retryResult.sections || []).forEach(function(s) {
+                if (s && s.number != null && !mergedByNumber[s.number]) mergedByNumber[s.number] = s;
+              });
+              got.sections = Object.keys(mergedByNumber).map(function(k){ return mergedByNumber[k]; })
+                .filter(function(s) {
+                  var p = s.page_start;
+                  if (p == null) return true;
+                  if (p < chRangeStart) return false;
+                  if (chNextPage != null && p >= chNextPage) return false;
+                  return true;
+                });
+            } catch(e) {
+              console.warn('Tentativo mirato capitolo ' + reqCh.number + ' fallito:', e.message);
+            }
+
+            var finalNumbers = got.sections.map(function(s){ return s.number; });
+            var stillMissing = expectedNumbers.filter(function(n){ return finalNumbers.indexOf(n) === -1; });
+            if (stillMissing.length) {
+              unresolvedGaps.push({ number: reqCh.number, missing: stillMissing });
+            }
+          }
+        }
+
+        // Ordina per pagina: le sezioni recuperate con il tentativo mirato
+        // finirebbero altrimenti in coda invece che nella loro posizione naturale.
+        got.sections.sort(function(a, b){ return (a.page_start || 0) - (b.page_start || 0); });
+        allChaptersWithSections.push(got);
       }
     }
 
     // ── Assembla il JSON finale ────────────────────────
     setProgress(98, 'Assemblaggio JSON finale...');
+
+    var sortedChapters = allChaptersWithSections.sort(function(a,b){ return a.number - b.number; });
 
     var finalJson = {
       id:        meta.id,
@@ -3230,19 +3949,29 @@ async function generateBookJson(inputText) {
       author:    meta.author,
       publisher: meta.publisher,
       subject:   meta.subject,
+      edition:   meta.edition,
+      year:      meta.year,
+      volume:    meta.volume,
       type:      meta.type,
-      index_chapters: allChaptersWithSections.sort(function(a,b){ return a.number - b.number; })
+      index_chapters: sortedChapters
     };
 
     BOOK_JSON = finalJson;
+    saveGeneratedIndex(finalJson);
+    renderIndexesGrid();
     setProgress(100, 'Completato!');
 
     document.getElementById('bookJsonPreview').textContent =
       JSON.stringify(BOOK_JSON, null, 2);
 
+    var warnings = checkIndexQuality(sortedChapters, totalPages, unresolvedGaps);
+    renderIndexQualityWarnings(warnings);
+
     BOOK_STEP = 3;
     updateBookUI();
-    showToast('✅ JSON generato — ' + allChaptersWithSections.length + ' capitoli');
+    showToast(warnings.length
+      ? '⚠️ JSON generato con ' + warnings.length + ' avviso/i — controlla prima di usarlo'
+      : '✅ JSON generato — ' + allChaptersWithSections.length + ' capitoli', warnings.length ? 'warning' : undefined);
 
   } catch(e) {
     console.error('generateBookJson error:', e);
@@ -3283,6 +4012,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!-- ═══════════════════════════════════════════════
+     MODAL: VISUALIZZA INDICE SALVATO
+════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="viewIndexModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3><i class="fas fa-book"></i> <span id="viewIndexTitle">Indice</span></h3>
+      <button class="modal-close" onclick="closeModal('viewIndexModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <pre class="json-output" id="viewIndexJson"></pre>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('viewIndexModal')">Chiudi</button>
+      <button class="btn btn-secondary" id="viewIndexCopyBtn">
+        <i class="fas fa-copy"></i> Copia JSON
+      </button>
+      <button class="btn btn-primary" id="viewIndexDownloadBtn">
+        <i class="fas fa-download"></i> Scarica JSON
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
      MODAL: NUOVO INDICE MANUALE
 ════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="bookIndexModal">
@@ -3312,7 +4065,20 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="form-row">
           <div class="form-group">
             <label>Casa editrice</label>
-            <input type="text" id="bookPublisher" placeholder="es. Zanichelli">
+            <input type="text" id="bookPublisher" list="publisherOptions" autocomplete="off" placeholder="es. Zanichelli">
+            <datalist id="publisherOptions">
+              <option value="Zanichelli-CEA">
+              <option value="Pearson">
+              <option value="McGraw-Hill">
+              <option value="EdiSES">
+              <option value="Piccin">
+              <option value="Edi Ermes">
+              <option value="Elsevier">
+              <option value="UTET">
+              <option value="Idelson-Gnocchi">
+              <option value="Il Mulino">
+              <option value="Franco Angeli">
+            </datalist>
           </div>
           <div class="form-group">
             <label>Subject (materia)</label>
@@ -3331,6 +4097,20 @@ document.addEventListener('DOMContentLoaded', function() {
               <option value="concorrente">Concorrente</option>
               <option value="altro">Altro</option>
             </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Edizione</label>
+            <input type="text" id="bookEdition" placeholder="es. 2a edizione italiana">
+          </div>
+          <div class="form-group">
+            <label>Anno di pubblicazione</label>
+            <input type="number" id="bookYear" placeholder="es. 2024">
+          </div>
+          <div class="form-group">
+            <label>Volume</label>
+            <input type="number" id="bookVolume" placeholder="opzionale, es. 1">
           </div>
         </div>
       </div>
@@ -3387,6 +4167,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="ci">✅</span>
           <div>JSON generato correttamente. Puoi scaricarlo o copiarlo negli appunti.</div>
         </div>
+        <div id="bookQualityWarnings" style="display:none;margin-bottom:16px"></div>
         <div class="json-output" id="bookJsonPreview"
           style="max-height:360px;font-size:11px"></div>
       </div>
