@@ -238,6 +238,9 @@ table.freq-table tr:hover td{background:#f9fafb;}
     <span id="headerProjectName"></span>
   </div>
   <div class="header-actions">
+    <button class="btn-settings" onclick="openModal('backupModal')">
+      <i class="fas fa-cloud-download-alt"></i> Backup
+    </button>
     <button class="btn-settings" id="btnOpenSettings">
       <i class="fas fa-cog"></i> Impostazioni
     </button>
@@ -735,6 +738,50 @@ table.freq-table tr:hover td{background:#f9fafb;}
 <!-- ═══════════════════════════════════════════════
      MODAL: IMPOSTAZIONI
 ════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="backupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-cloud-download-alt"></i> Backup e ripristino</h3>
+      <button class="modal-close" onclick="closeModal('backupModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="callout info" style="margin-bottom:16px">
+        <span class="ci">ℹ️</span>
+        <div>Framework e indici sono salvati solo in questo browser, legati all'indirizzo con cui apri l'app
+        (es. il file in locale oppure matrix-framework-builder.netlify.app). Per portarli da un indirizzo
+        all'altro, esporta qui un file di backup e importalo nell'altra versione.</div>
+      </div>
+      <div class="settings-section">
+        <h3>⬇️ Esporta</h3>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:10px">
+          Scarica un unico file con tutti i framework e gli indici salvati in questo browser.
+        </p>
+        <button class="btn btn-primary" onclick="exportAllData()">
+          <i class="fas fa-download"></i> Esporta tutto
+        </button>
+      </div>
+      <div class="settings-section" style="margin-top:20px">
+        <h3>⬆️ Importa</h3>
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:10px">
+          Carica un file di backup esportato da un'altra versione dell'app (si aggiunge a quanto già presente,
+          non sovrascrive nulla di diverso).
+        </p>
+        <button class="btn btn-secondary" onclick="document.getElementById('importBackupInput').click()">
+          <i class="fas fa-file-import"></i> Importa backup
+        </button>
+        <input type="file" id="importBackupInput" accept=".json" style="display:none"
+          onchange="importAllData(this.files)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('backupModal')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL: IMPOSTAZIONI
+════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-header">
@@ -1098,6 +1145,59 @@ function saveProject(project) {
 
 function deleteProject(projectId) {
   localStorage.removeItem('mfb_project_' + projectId);
+}
+
+// ════════════════════════════════════════════════
+//  BACKUP / RIPRISTINO — localStorage è legato all'indirizzo con cui si
+//  apre l'app (file locale, 127.0.0.1, netlify...): aprendo l'app da un
+//  indirizzo diverso non si vede nulla di quanto salvato altrove. Questo
+//  esporta/importa tutto (framework + indici) in un unico file per
+//  spostare i dati da una versione all'altra.
+// ════════════════════════════════════════════════
+function exportAllData() {
+  var data = { exportedAt: Date.now(), projects: [], indexes: [] };
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (!key) continue;
+    if (key.startsWith('mfb_project_')) {
+      try { data.projects.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
+    } else if (key.startsWith('mfb_index_')) {
+      try { data.indexes.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
+    }
+  }
+
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'matrix-framework-builder-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('✅ Backup scaricato: ' + data.projects.length + ' framework, ' + data.indexes.length + ' indici');
+}
+
+async function importAllData(fileList) {
+  var files = Array.prototype.slice.call(fileList || []);
+  if (!files.length) return;
+
+  try {
+    var text = await files[0].text();
+    var data = JSON.parse(text);
+    var np = 0, ni = 0;
+    (data.projects || []).forEach(function(p) {
+      if (p && p.id) { localStorage.setItem('mfb_project_' + p.id, JSON.stringify(p)); np++; }
+    });
+    (data.indexes || []).forEach(function(idx) {
+      if (idx && idx.id) { localStorage.setItem('mfb_index_' + idx.id, JSON.stringify(idx)); ni++; }
+    });
+    document.getElementById('importBackupInput').value = '';
+    closeModal('backupModal');
+    renderDashboard();
+    showToast('✅ Ripristinati ' + np + ' framework e ' + ni + ' indici');
+  } catch(e) {
+    showToast('❌ File di backup non valido: ' + e.message, 'error');
+  }
 }
 
 function createNewProject(name, materiaId, materiaName, materiaSsd, cdls) {
