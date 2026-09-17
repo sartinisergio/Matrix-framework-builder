@@ -38,10 +38,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:var(--
 .dashboard-header h1{font-size:26px;font-weight:800;}
 .dashboard-header p{font-size:14px;color:var(--text-2);margin-top:4px;}
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
-.materia-group-header{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:22px 0 2px;padding-bottom:8px;border-bottom:2px solid var(--gray-2);}
+.materia-group-header{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:22px 0 2px;padding:6px 4px 8px;border-bottom:2px solid var(--gray-2);cursor:pointer;user-select:none;border-radius:6px;transition:background 0.15s;}
 .materia-group-header:first-child{margin-top:0;}
-.materia-group-title{font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;}
-.materia-group-count{background:var(--gray);color:var(--text-2);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.materia-group-header:hover{background:var(--gray);}
+.materia-group-header:hover .materia-group-title{color:var(--green);}
+.materia-group-chevron{font-size:11px;color:var(--gray-3);transition:transform 0.15s;}
+.materia-group-header.expanded .materia-group-chevron{transform:rotate(90deg);}
+.materia-group-title{font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;transition:color 0.15s;}
+.materia-group-count{background:var(--gray);color:var(--text-2);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-left:auto;}
 .project-card{background:white;border-radius:14px;padding:22px;box-shadow:var(--shadow);border:2px solid transparent;cursor:pointer;transition:all 0.2s;position:relative;}
 .project-card:hover{border-color:var(--green);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,166,81,0.15);}
 .project-card-new{border:2.5px dashed var(--gray-2);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;color:var(--gray-3);}
@@ -1294,16 +1298,43 @@ function groupByMateria(items, getLabel) {
   return order.map(function(label) { return { label: label, items: groups[label] }; });
 }
 
-function renderGroupedGrid(gridEl, items, getLabel, cardHtmlFn) {
+// Stato aperto/chiuso dei gruppi: chiave = "<prefisso scheda>::<materia>",
+// così framework e indici restano indipendenti anche se condividono il nome
+// materia. Chiuso per default (assenza di chiave = false).
+var EXPANDED_GROUPS = {};
+
+function toggleMateriaGroup(headerEl) {
+  var stateKey   = headerEl.getAttribute('data-group-state-key');
+  var idx        = headerEl.getAttribute('data-group-idx');
+  var isExpanded = !EXPANDED_GROUPS[stateKey];
+  EXPANDED_GROUPS[stateKey] = isExpanded;
+  headerEl.classList.toggle('expanded', isExpanded);
+  var grid = headerEl.parentElement;
+  grid.querySelectorAll('.group-item[data-group-idx="' + idx + '"]').forEach(function(el) {
+    el.style.display = isExpanded ? 'contents' : 'none';
+  });
+}
+
+function renderGroupedGrid(gridEl, items, getLabel, cardHtmlFn, statePrefix) {
   var groups = groupByMateria(items, getLabel);
   var html = '';
-  groups.forEach(function(g) {
-    html += '<div class="materia-group-header">'
+  groups.forEach(function(g, gi) {
+    var stateKey   = statePrefix + '::' + g.label;
+    var isExpanded = !!EXPANDED_GROUPS[stateKey];
+    html += '<div class="materia-group-header' + (isExpanded ? ' expanded' : '') + '"'
+          + ' data-group-state-key="' + escHtml(stateKey) + '"'
+          + ' data-group-idx="' + gi + '"'
+          + ' onclick="toggleMateriaGroup(this)">'
+          + '  <i class="fas fa-chevron-right materia-group-chevron"></i>'
           + '  <div class="materia-group-title"><i class="fas fa-layer-group" style="color:var(--gray-3);font-size:12px"></i> '
           + escHtml(g.label) + '</div>'
           + '  <div class="materia-group-count">' + g.items.length + '</div>'
           + '</div>';
-    html += g.items.map(cardHtmlFn).join('');
+    html += g.items.map(function(item) {
+      return '<div class="group-item" data-group-idx="' + gi + '" style="display:' + (isExpanded ? 'contents' : 'none') + '">'
+           + cardHtmlFn(item)
+           + '</div>';
+    }).join('');
   });
   gridEl.innerHTML = html;
 }
@@ -1359,7 +1390,7 @@ function renderDashboard() {
           + '</div>';
   }
 
-  renderGroupedGrid(grid, projects, function(p){ return p.materiaName || p.materiaId; }, projectCardHtml);
+  renderGroupedGrid(grid, projects, function(p){ return p.materiaName || p.materiaId; }, projectCardHtml, 'framework');
 
   // Card "Nuovo framework" — sempre in cima, fuori da qualsiasi gruppo
   grid.insertAdjacentHTML('afterbegin',
@@ -1531,7 +1562,7 @@ function renderIndexesGrid() {
           + '</div>';
   }
 
-  renderGroupedGrid(grid, indexes, function(idx){ return idx.subject; }, indexCardHtml);
+  renderGroupedGrid(grid, indexes, function(idx){ return idx.subject; }, indexCardHtml, 'indici');
 }
 
 function confirmDeleteProject(id, name) {
