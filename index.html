@@ -38,6 +38,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:var(--
 .dashboard-header h1{font-size:26px;font-weight:800;}
 .dashboard-header p{font-size:14px;color:var(--text-2);margin-top:4px;}
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
+.materia-group-header{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:22px 0 2px;padding-bottom:8px;border-bottom:2px solid var(--gray-2);}
+.materia-group-header:first-child{margin-top:0;}
+.materia-group-title{font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;}
+.materia-group-count{background:var(--gray);color:var(--text-2);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;}
 .project-card{background:white;border-radius:14px;padding:22px;box-shadow:var(--shadow);border:2px solid transparent;cursor:pointer;transition:all 0.2s;position:relative;}
 .project-card:hover{border-color:var(--green);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,166,81,0.15);}
 .project-card-new{border:2.5px dashed var(--gray-2);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;color:var(--gray-3);}
@@ -1266,6 +1270,44 @@ function switchDashboardTab(tab) {
   }
 }
 
+// ════════════════════════════════════════════════
+//  RAGGRUPPAMENTO PER MATERIA — sia i framework che gli indici sono
+//  destinati a crescere nel tempo; senza raggruppamento una griglia
+//  piatta diventa presto difficile da scorrere. Ogni gruppo mostra
+//  un'intestazione con il nome della materia e il conteggio.
+// ════════════════════════════════════════════════
+var SENZA_MATERIA_LABEL = 'Senza materia';
+
+function groupByMateria(items, getLabel) {
+  var groups = {};
+  var order  = [];
+  items.forEach(function(item) {
+    var label = (getLabel(item) || '').trim() || SENZA_MATERIA_LABEL;
+    if (!groups[label]) { groups[label] = []; order.push(label); }
+    groups[label].push(item);
+  });
+  order.sort(function(a, b) {
+    if (a === SENZA_MATERIA_LABEL) return 1;
+    if (b === SENZA_MATERIA_LABEL) return -1;
+    return a.localeCompare(b, 'it');
+  });
+  return order.map(function(label) { return { label: label, items: groups[label] }; });
+}
+
+function renderGroupedGrid(gridEl, items, getLabel, cardHtmlFn) {
+  var groups = groupByMateria(items, getLabel);
+  var html = '';
+  groups.forEach(function(g) {
+    html += '<div class="materia-group-header">'
+          + '  <div class="materia-group-title"><i class="fas fa-layer-group" style="color:var(--gray-3);font-size:12px"></i> '
+          + escHtml(g.label) + '</div>'
+          + '  <div class="materia-group-count">' + g.items.length + '</div>'
+          + '</div>';
+    html += g.items.map(cardHtmlFn).join('');
+  });
+  gridEl.innerHTML = html;
+}
+
 function renderDashboard() {
   document.getElementById('dashboardView').style.display   = 'block';
   document.getElementById('projectLayout').style.display   = 'none';
@@ -1284,15 +1326,7 @@ function renderDashboard() {
     'exported':  { label:'Framework generato', cls:'status-exported',  icon:'fa-check-circle' }
   };
 
-  var html = '';
-
-  // Card "Nuovo framework"
-  html += '<div class="project-card project-card-new" onclick="openNewProjectModal()">'
-        + '<i class="fas fa-plus"></i>'
-        + '<span>Nuovo framework</span>'
-        + '</div>';
-
-  projects.forEach(function(p) {
+  function projectCardHtml(p) {
     var st    = getProjectStatus(p);
     var sc    = statusConfig[st] || statusConfig['new'];
     var nDone = (p.files || []).filter(function(f){ return f.status==='done'; }).length;
@@ -1301,7 +1335,7 @@ function renderDashboard() {
       ? new Date(p.updatedAt).toLocaleDateString('it-IT')
       : '—';
 
-    html += '<div class="project-card">'
+    return '<div class="project-card">'
           + '  <div class="project-status ' + sc.cls + '">'
           + '    <i class="fas ' + sc.icon + '"></i> ' + sc.label
           + '  </div>'
@@ -1323,9 +1357,17 @@ function renderDashboard() {
           + '    </button>'
           + '  </div>'
           + '</div>';
-  });
+  }
 
-  grid.innerHTML = html;
+  renderGroupedGrid(grid, projects, function(p){ return p.materiaName || p.materiaId; }, projectCardHtml);
+
+  // Card "Nuovo framework" — sempre in cima, fuori da qualsiasi gruppo
+  grid.insertAdjacentHTML('afterbegin',
+    '<div class="project-card project-card-new" onclick="openNewProjectModal()">'
+    + '<i class="fas fa-plus"></i>'
+    + '<span>Nuovo framework</span>'
+    + '</div>');
+
   renderIndexesGrid();
 }
 
@@ -1455,10 +1497,9 @@ function renderIndexesGrid() {
     return;
   }
 
-  var html = '';
-  indexes.forEach(function(idx) {
+  function indexCardHtml(idx) {
     var date = idx.createdAt ? new Date(idx.createdAt).toLocaleDateString('it-IT') : '—';
-    html += '<div class="project-card" style="cursor:default">'
+    return '<div class="project-card" style="cursor:default">'
           + '  <div class="project-status status-exported">'
           + '    <i class="fas fa-check-circle"></i> Generato'
           + '  </div>'
@@ -1488,9 +1529,9 @@ function renderIndexesGrid() {
           + '    </button>'
           + '  </div>'
           + '</div>';
-  });
+  }
 
-  grid.innerHTML = html;
+  renderGroupedGrid(grid, indexes, function(idx){ return idx.subject; }, indexCardHtml);
 }
 
 function confirmDeleteProject(id, name) {
