@@ -2139,12 +2139,12 @@ async function extractTextFromPdf(file) {
   var buf  = await file.arrayBuffer();
   var pdf  = await pdfjsLib.getDocument({data:buf}).promise;
   var text = '';
-  for (var p=1; p<=Math.min(pdf.numPages,12); p++) {
+  for (var p=1; p<=pdf.numPages; p++) {
     var page    = await pdf.getPage(p);
     var content = await page.getTextContent();
     text += content.items.map(function(i){ return i.str; }).join(' ') + '\n';
   }
-  return text.trim().substring(0,6000);
+  return text.trim();
 }
 
 async function extractArgsWithAI(text, materiaId, materiaSsd, cdl) {
