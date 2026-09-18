@@ -3902,7 +3902,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     // il testo, invece del vecchio taglio fisso ai primi 25.000 caratteri
     // che faceva sparire in silenzio i capitoli oltre quel punto.
     var CHUNK_SIZE    = 60000;
-    var CHUNK_OVERLAP = 3000;
+    var CHUNK_OVERLAP = 6000;
     var textChunks = splitTextIntoChunks(inputText, CHUNK_SIZE, CHUNK_OVERLAP);
 
     // ── CHIAMATA 1: estrai lista capitoli, un blocco di testo alla volta ──
@@ -4048,7 +4048,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
 
       var resultByNumber = {};
       try {
-        var step2Result = await chatJsonCompletionWithRetry(systemPrompt, prompt2, 4096, 'Step2', 1);
+        var step2Result = await chatJsonCompletionWithRetry(systemPrompt, prompt2, 6000, 'Step2', 1);
         (step2Result.chapters || []).forEach(function(rc) {
           if (rc && rc.number != null) resultByNumber[rc.number] = rc;
         });
@@ -4111,7 +4111,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
                 + 'Rispondi SOLO con questo JSON:\n'
                 + '{"sections":[{"number":"' + reqCh.number + '.1","title":"...","page_start":1}]}';
 
-              var retryResult = await chatJsonCompletion(systemPrompt, retryPrompt, 2048, 'Step2-retry-cap' + reqCh.number);
+              var retryResult = await chatJsonCompletion(systemPrompt, retryPrompt, 4096, 'Step2-retry-cap' + reqCh.number);
               var mergedByNumber = {};
               got.sections.forEach(function(s){ mergedByNumber[s.number] = s; });
               (retryResult.sections || []).forEach(function(s) {
