@@ -4013,7 +4013,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
           + inputText.slice(marker.pos, nextMarkerPos) + '\n\n'
           + 'Estrai SOLO questo capitolo: number (intero, ' + marker.number + '), title (stringa), page_start (intero).\n'
           + 'Rispondi SOLO con questo JSON: {"number":' + marker.number + ',"title":"...","page_start":1}';
-        var recovered = await chatJsonCompletion(systemPrompt, recoverPrompt, 500, 'Step1-recupero-cap' + marker.number);
+        var recovered = await chatJsonCompletionWithRetry(systemPrompt, recoverPrompt, 500, 'Step1-recupero-cap' + marker.number, 2);
         if (recovered && recovered.number != null) {
           recovered._srcChunk = -1; // recuperato fuori dal ciclo a blocchi
           chaptersByNumber[recovered.number] = recovered;
@@ -4092,9 +4092,9 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         + '{"sections":[{"number":"' + reqCh.number + '.1","title":"...","page_start":1}]}';
 
       try {
-        var result = await chatJsonCompletion(
+        var result = await chatJsonCompletionWithRetry(
           systemPrompt, retryPrompt, 4096,
-          'Step2-retry-cap' + reqCh.number + (depth ? ('-p' + depth) : ''));
+          'Step2-retry-cap' + reqCh.number + (depth ? ('-p' + depth) : ''), 1);
         return result.sections || [];
       } catch(e) {
         if (e.truncated && depth < 5 && (toPage - fromPage) > 1) {
