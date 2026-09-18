@@ -3652,15 +3652,28 @@ function escapeRegExp(s) {
 function findExpectedSectionNumbers(text, chapterNumber, numberedPrefixes) {
   var allPrefixes = KNOWN_NUMBERED_PREFIXES.concat(numberedPrefixes || [])
     .filter(function(v, i, arr){ return arr.indexOf(v) === i; });
-  var boxLabelRe = new RegExp('(?:' + allPrefixes.map(escapeRegExp).join('|') + '|SCHEDA|BOX|APPROFONDIMENTO)\\s*$', 'i');
+  // "Figura N.X"/"Tabella N.X"/"Paragrafo N.X" dentro i box QRcode (contenuto
+  // digitale supplementare, tipico di EdiSES) usano la STESSA numerazione
+  // "N.X" del capitolo per riferirsi a un'immagine o a un rimando, non a una
+  // sezione — senza questo controllo il regex sotto li scambia per sezioni
+  // mancanti, e nessun tentativo di recupero potrà mai "trovarle" perché non
+  // esistono come voci d'indice. Verificato sul testo reale: ogni caso
+  // segnalato era "QRcode0N-M  Figura/Paragrafo N.X – ...", mai una sezione
+  // vera. La parola-etichetta (Figura/Paragrafo/Tabella) è sempre subito
+  // prima del numero, ma "QRcode" può comparire qualche parola più indietro
+  // nella stessa riga — per questo il controllo su QRCODE cerca ovunque
+  // nella finestra, non solo come parola immediatamente adiacente.
+  var boxLabelEndRe = new RegExp(
+    '(?:' + allPrefixes.map(escapeRegExp).join('|') + '|SCHEDA|BOX|APPROFONDIMENTO|FIGURA|FIG\\.|TABELLA|TAB\\.|PARAGRAFO)\\s*$', 'i');
+  var qrCodeAnywhereRe = /QRCODE/i;
 
   var re = new RegExp('\\b' + chapterNumber + '\\.(\\d+)\\b', 'g');
   var found = [];
   var seen = {};
   var m;
   while ((m = re.exec(text)) !== null) {
-    var before = text.slice(Math.max(0, m.index - 40), m.index);
-    if (boxLabelRe.test(before)) continue;
+    var before = text.slice(Math.max(0, m.index - 60), m.index);
+    if (boxLabelEndRe.test(before) || qrCodeAnywhereRe.test(before)) continue;
     var num = chapterNumber + '.' + m[1];
     if (!seen[num]) { seen[num] = true; found.push(num); }
   }
