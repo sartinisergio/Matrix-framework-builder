@@ -3522,7 +3522,16 @@ function normalizePublisher(v) {
 // Divide un testo lungo in blocchi consecutivi, spezzando su un a-capo
 // (mai a metà riga) — serve a restare sotto un budget di caratteri per
 // chiamata senza mai perdere del testo, a differenza di un troncamento fisso.
-function splitTextIntoChunks(text, maxLen) {
+//
+// Un capitolo la cui intestazione cade proprio sul confine tra due blocchi
+// non compare "per intero" in nessuno dei due (il prompt dice esplicitamente
+// di estrarre solo i capitoli completi nel blocco) e sparisce in silenzio.
+// `overlap` fa ripartire ogni blocco un po' prima della fine del precedente,
+// così quell'intestazione ricade per intero in almeno un blocco. I duplicati
+// che ne derivano non sono un problema: chaptersByNumber tiene comunque solo
+// la prima occorrenza di ogni numero.
+function splitTextIntoChunks(text, maxLen, overlap) {
+  overlap = overlap || 0;
   if (text.length <= maxLen) return [text];
   var chunks = [];
   var start = 0;
@@ -3533,7 +3542,8 @@ function splitTextIntoChunks(text, maxLen) {
       if (lastBreak > start) end = lastBreak;
     }
     chunks.push(text.slice(start, end));
-    start = end;
+    if (end >= text.length) break;
+    start = Math.max(start + 1, end - overlap);
   }
   return chunks;
 }
@@ -3560,6 +3570,13 @@ async function chatJsonCompletion(systemPrompt, userPrompt, maxTokens, label) {
   if (!r.ok) throw new Error(label + ' error: ' + r.status);
   var d   = await r.json();
   var raw = d.choices[0].message.content.trim();
+  // Un JSON troncato da max_tokens fallisce comunque il parsing qui sotto,
+  // ma con un messaggio generico indistinguibile da un vero errore di
+  // formato: senza questo controllo esplicito il motivo reale (blocco troppo
+  // denso per il budget di token) resta invisibile in console.
+  if (d.choices[0].finish_reason === 'length') {
+    throw new Error(label + ' risposta troncata da max_tokens (blocco troppo denso): ' + raw.substring(0, 200));
+  }
   try {
     var m = raw.match(/\{[\s\S]*\}/);
     return JSON.parse(m ? m[0] : raw);
@@ -3753,8 +3770,19 @@ function chapterTitleMatchesMarker(chapterTitle, markerWindowText) {
 // risultato con lo stesso messaggio di successo, anche un indice tagliato
 // a metà (è quello che è successo con un libro di 31 capitoli fermatosi
 // silenziosamente al 17). Restano avvisi non bloccanti: l'utente decide.
-function checkIndexQuality(chapters, totalPages, unresolvedGaps) {
+function checkIndexQuality(chapters, totalPages, unresolvedGaps, failedChunks) {
   var warnings = [];
+
+  // Un blocco di testo (Step 1) fallito anche dopo il retry non compare in
+  // nessun altro controllo qui sotto se, per caso, i numeri restano comunque
+  // consecutivi — prima finiva solo in console, invisibile senza dev tools.
+  (failedChunks || []).forEach(function(n) {
+    warnings.push(
+      'Blocco ' + n + ' del testo non elaborato correttamente (errore AI anche dopo un nuovo tentativo): '
+      + 'i capitoli in quella parte del volume potrebbero mancare, verifica il PDF per quella sezione.'
+    );
+  });
+
   if (!chapters.length) return warnings;
 
   // Segnalazioni precise (numeri di sezione trovati per certo nel testo del
@@ -3873,11 +3901,13 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     // lungo (es. 30+ capitoli) viene diviso in blocchi che coprono TUTTO
     // il testo, invece del vecchio taglio fisso ai primi 25.000 caratteri
     // che faceva sparire in silenzio i capitoli oltre quel punto.
-    var CHUNK_SIZE = 60000;
-    var textChunks = splitTextIntoChunks(inputText, CHUNK_SIZE);
+    var CHUNK_SIZE    = 60000;
+    var CHUNK_OVERLAP = 3000;
+    var textChunks = splitTextIntoChunks(inputText, CHUNK_SIZE, CHUNK_OVERLAP);
 
     // ── CHIAMATA 1: estrai lista capitoli, un blocco di testo alla volta ──
     var chaptersByNumber = {};
+    var failedChunks     = [];
     for (var tci = 0; tci < textChunks.length; tci++) {
       var chunkPct = 15 + Math.round((tci / textChunks.length) * 20);
       setProgress(chunkPct, 'Step 1/2 — Estrazione capitoli' +
@@ -3906,7 +3936,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         + '{"chapters":[{"number":1,"title":"...","page_start":1}]}';
 
       try {
-        var step1Result = await chatJsonCompletionWithRetry(systemPrompt, prompt1, 2000, 'Step1', 1);
+        var step1Result = await chatJsonCompletionWithRetry(systemPrompt, prompt1, 4000, 'Step1', 1);
         (step1Result.chapters || []).forEach(function(c) {
           if (c && c.number != null && !chaptersByNumber[c.number]) {
             c._srcChunk = tci;
@@ -3915,6 +3945,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         });
       } catch(e) {
         console.error('Step1 blocco ' + (tci+1) + ' fallito:', e.message);
+        failedChunks.push(tci + 1);
       }
     }
 
@@ -4139,7 +4170,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     document.getElementById('bookJsonPreview').textContent =
       JSON.stringify(BOOK_JSON, null, 2);
 
-    var warnings = checkIndexQuality(sortedChapters, totalPages, unresolvedGaps);
+    var warnings = checkIndexQuality(sortedChapters, totalPages, unresolvedGaps, failedChunks);
     renderIndexQualityWarnings(warnings);
 
     BOOK_STEP = 3;
