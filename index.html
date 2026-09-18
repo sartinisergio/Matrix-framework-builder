@@ -4076,16 +4076,21 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
       }
     }
 
-    // Corregge page_start di ogni capitolo con il dato deterministico (dove
-    // sta davvero il marcatore "CAPITOLO N" nel testo), invece di fidarsi di
-    // quello indovinato dal modello — osservato concretamente: un capitolo
-    // con page_start errato disattivava in silenzio la verifica del
-    // capitolo precedente (vedi pageForOffset). Solo con un PDF reale
-    // (pageOffsets), non col testo incollato a mano.
+    // ATTENZIONE ALLA DIFFERENZA: page_start è il numero di pagina del LIBRO
+    // VERO (es. 852) — compare scritto nel testo dell'indice e solo il
+    // modello può leggerlo, non va mai sostituito. _tocPage è tutt'altra
+    // cosa: su quale pagina del PDF CARICATO (il solo indice, poche pagine)
+    // si trova il marcatore "CAPITOLO N" — serve solo per calcolare
+    // intervalli di testo con sliceTextByPageRange, che lavora sulle pagine
+    // del documento caricato, non su quelle del libro. Confondere le due
+    // (fatto in un fix precedente, poi tornato indietro) rompe ogni calcolo
+    // di intervallo: un capitolo con page_start realistico (852) non esiste
+    // come chiave in pageOffsets (che ha solo le poche pagine del PDF
+    // caricato), quindi l'intervallo collassava per quasi ogni capitolo.
     if (pageOffsets) {
       uniqueChapterMarkers.forEach(function(marker) {
         if (chaptersByNumber[marker.number]) {
-          chaptersByNumber[marker.number].page_start = pageForOffset(marker.pos, pageOffsets);
+          chaptersByNumber[marker.number]._tocPage = pageForOffset(marker.pos, pageOffsets);
         }
       });
     }
@@ -4208,9 +4213,12 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
       // PDF, nessuna mappa pagine) resta il vecchio fallback a blocchi.
       var srcText;
       if (pageOffsets) {
-        var groupStartPage = Math.max(1, (chunk[0].page_start || 1) - 1);
+        // _tocPage (pagina del PDF caricato), non page_start (pagina del
+        // libro vero) — sliceTextByPageRange lavora sulle pagine del
+        // documento caricato, vedi commento su _tocPage più sopra.
+        var groupStartPage = Math.max(1, (chunk[0]._tocPage || 1) - 1);
         var nextChapter    = chapters[ci + chunk.length];
-        var groupEndPage   = nextChapter ? nextChapter.page_start + 1 : null;
+        var groupEndPage   = nextChapter ? (nextChapter._tocPage || 0) + 1 : null;
         srcText = sliceTextByPageRange(inputText, pageOffsets, groupStartPage, groupEndPage);
       } else {
         var srcIndexes = chunk.map(function(c){ return c._srcChunk || 0; });
@@ -4274,8 +4282,25 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
 
         if (pageOffsets) {
           var globalIdx      = ci + lj;
+          // Due intervalli distinti, apposta: chRangeStart/chNextPage confrontano
+          // il page_start REALE (del libro, dal modello) di ogni sezione — serve
+          // per il filtro sotto. chTocStart/chTocNext sono nello spazio pagine
+          // del PDF CARICATO (_tocPage) e servono solo per tagliare il testo
+          // sorgente con sliceTextByPageRange, che lavora su quelle pagine, non
+          // su quelle del libro — vedi commento su _tocPage più sopra.
           var chNextPage     = chapters[globalIdx + 1] ? chapters[globalIdx + 1].page_start : null;
           var chRangeStart   = reqCh.page_start || 1;
+          var chTocNext      = chapters[globalIdx + 1] ? chapters[globalIdx + 1]._tocPage : null;
+          var chTocStart     = reqCh._tocPage || 1;
+
+          // Il page_start REALE che il modello assegna a un capitolo può essere
+          // sbagliato (osservato: "1" invece di "26") — se il capitolo successivo
+          // dichiara di iniziare prima o alla stessa pagina di questo, il dato è
+          // palesemente inutilizzabile come limite superiore: usarlo scarterebbe
+          // TUTTE le sezioni ritrovate per questo capitolo invece di nessuna.
+          // Meglio nessun limite superiore (solo chRangeStart resta a fare da
+          // filtro) che uno chiaramente corrotto.
+          if (chNextPage != null && chNextPage <= chRangeStart) chNextPage = null;
 
           // Una chiamata di gruppo copre più capitoli in un colpo solo: se il modello
           // attribuisce per errore una voce (tipicamente boilerplate come "NUCLEI
@@ -4291,7 +4316,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
             return true;
           });
 
-          var chapterOwnText   = sliceTextByPageRange(inputText, pageOffsets, chRangeStart, chNextPage);
+          var chapterOwnText   = sliceTextByPageRange(inputText, pageOffsets, chTocStart, chTocNext);
           var expectedNumbers  = findExpectedSectionNumbers(chapterOwnText, reqCh.number, discoveredLabels.numberedPrefixes)
             .concat(findExpectedBoxAndBoilerplate(chapterOwnText, reqCh.number, discoveredLabels.fixed, discoveredLabels.numberedPrefixes));
           var actualNumbers   = got.sections.map(function(s){ return s.number; });
@@ -4299,13 +4324,16 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
 
           if (missingNumbers.length) {
             try {
-              // chNextPage è null solo per l'ultimo capitolo del libro (nessun
-              // limite superiore reale): totalPages+1 è un numero concreto che
-              // produce lo stesso taglio di testo (fino alla fine) ma permette
-              // comunque la bisezione se anche questo capitolo risulta troppo denso.
-              var toPageForRetry = chNextPage != null ? chNextPage : (totalPages ? totalPages + 1 : chRangeStart + 200);
+              // chTocNext è null solo per l'ultimo capitolo del libro (nessun
+              // limite superiore reale): un numero concreto oltre l'ultima pagina
+              // del PDF caricato produce lo stesso taglio di testo (fino alla
+              // fine) ma permette comunque la bisezione se il capitolo risulta
+              // troppo denso.
+              var maxTocPage = 0;
+              Object.keys(pageOffsets).forEach(function(p){ if (+p > maxTocPage) maxTocPage = +p; });
+              var toPageForRetry = chTocNext != null ? chTocNext : (maxTocPage + 1);
               var retrySections  = await extractSectionsForPageRange(
-                reqCh, chRangeStart, toPageForRetry, missingNumbers, 0);
+                reqCh, chTocStart, toPageForRetry, missingNumbers, 0);
 
               var mergedByNumber = {};
               got.sections.forEach(function(s){ mergedByNumber[s.number] = s; });
