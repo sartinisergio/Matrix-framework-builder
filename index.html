@@ -3719,7 +3719,8 @@ function dropSpuriousSections(sections, sourceText) {
 
   sections.forEach(function(s) {
     var num = String(s.number == null ? '' : s.number).trim();
-    if (/^QRCODE/i.test(num)) { dropped.push(s); return; }
+    // "QRcode32.1" (EdiSES Molecole) ma anche "QR25-1" (EdiSES Biologia cellulare)
+    if (/^QR(?:CODE)?\s*\d/i.test(num)) { dropped.push(s); return; }
 
     var m = /^(\d+\.\d+)\.\d+/.exec(num);
     if (m && numbers[m[1]]) {
@@ -3730,6 +3731,64 @@ function dropSpuriousSections(sections, sourceText) {
   });
 
   return { kept: kept, dropped: dropped };
+}
+
+// ── Libri con sezioni NON numerate ────────────────────────────────────────
+// Alcuni indici (osservato: Alberts, Zanichelli) hanno titoli di sezione senza
+// numero, con sotto i punti elenco. Chiedere al modello "N.X" lo costringe a
+// inventare la numerazione, e lo fa in modo incoerente da capitolo a capitolo
+// (capitoli con 1-2 voci a caso, altri con 50 punti elenco, numeri fuori
+// ordine). In questo caso le sezioni sono i soli titoli di primo livello e i
+// numeri li assegna il codice, in ordine di pagina.
+//
+// Un libro numerato ha almeno una sezione "N.X" per capitolo (Molecole: 177
+// su 33 capitoli); uno non numerato ne ha praticamente zero (Alberts: 0 su 24).
+function isUnnumberedSectionBook(text, numChapters) {
+  var re = /(?:^|\s)(\d{1,2})\.(\d{1,2})\s+["“«A-ZÀ-Ý]/g;
+  var seen = {};
+  var count = 0;
+  var m;
+  while ((m = re.exec(text)) !== null) {
+    if (Number(m[1]) < 1 || Number(m[1]) > numChapters) continue;
+    var key = m[1] + '.' + m[2];
+    if (!seen[key]) { seen[key] = true; count++; }
+  }
+  return count < numChapters;
+}
+
+// Intestazioni di pagina e testo fisso che il modello scambia per sezioni (a
+// volte con le lettere spaziate: "P R E F A Z I O N E").
+var UNNUMBERED_JUNK_TITLES = ['PROBLEMI', 'BIBLIOGRAFIA', 'PREFAZIONE', 'INDICEGENERALE',
+  'INDICEANALITICO', 'SOMMARIO', 'RISORSEDIGITALI', 'LERISORSEDIGITALI'];
+
+function compactTitle(t) {
+  return String(t || '').replace(/[\s.:;,\-–—]/g, '').toUpperCase();
+}
+
+// Ripulisce e numera N.1, N.2, ... le sezioni di un capitolo di un libro non
+// numerato, in ordine di pagina (a parità di pagina resta l'ordine del modello).
+function normalizeUnnumberedSections(sections, chapterNumber, chapterTitle) {
+  var chapterKey = compactTitle(chapterTitle);
+  var seen = {};
+  var clean = [];
+  sections.forEach(function(s, idx) {
+    var title = String(s.title == null ? '' : s.title).trim();
+    var key = compactTitle(title);
+    if (!key) return;
+    if (UNNUMBERED_JUNK_TITLES.indexOf(key) !== -1) return;
+    if (key === chapterKey) return;                 // il titolo del capitolo non è una sua sezione
+    if (/^978-?\d/.test(title)) return;             // codice ISBN dell'intestazione di pagina
+    var dupKey = key + '|' + (s.page_start == null ? '' : s.page_start);
+    if (seen[dupKey]) return;
+    seen[dupKey] = true;
+    clean.push({ s: s, idx: idx });
+  });
+  clean.sort(function(a, b) {
+    return ((a.s.page_start || 0) - (b.s.page_start || 0)) || (a.idx - b.idx);
+  });
+  return clean.map(function(o, i) {
+    return { number: chapterNumber + '.' + (i + 1), title: o.s.title, page_start: o.s.page_start };
+  });
 }
 
 // Stesso principio delle sezioni numerate, esteso ai box numerati e alle
@@ -4174,6 +4233,8 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     // etichette fisse) prima di verificare le sezioni — si somma, non
     // sostituisce, a quanto già noto da esperienza diretta.
     var discoveredLabels = discoverRecurringLabels(inputText, chapters.length);
+    var unnumberedMode   = isUnnumberedSectionBook(inputText, chapters.length);
+    if (unnumberedMode) console.info('Libro con sezioni non numerate: uso i soli titoli di primo livello, numerati dal codice.');
 
     // Anche il tentativo mirato su un singolo capitolo può non bastare: un
     // capitolo molto denso (osservato: oltre 40 sezioni in un solo capitolo,
@@ -4263,7 +4324,22 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         srcText = textChunks.slice(minSrc, Math.min(maxSrc + 2, textChunks.length)).join('\n');
       }
 
-      var prompt2 =
+      var prompt2 = unnumberedMode ?
+        ('Testo indice di "' + meta.title + '":\n\n'
+        + srcText + '\n\n'
+        + 'In questo indice le sezioni NON hanno numeri. Estrai le sezioni SOLO per questi capitoli:\n'
+        + chapterList + '\n\n'
+        + 'Le sezioni sono SOLO i titoli di primo livello di ciascun capitolo: righe di titolo senza pallino o punto elenco, '
+        + 'con il numero di pagina alla fine (es. "Dal DNA all\'RNA321" = titolo "Dal DNA all\'RNA", pagina 321).\n'
+        + 'IGNORA COMPLETAMENTE le righe precedute da un pallino o punto elenco (●, •, o qualunque simbolo): sono sottovoci, non sezioni.\n'
+        + 'Ignora anche: "PROBLEMI", "BIBLIOGRAFIA", intestazioni di pagina ("INDICE GENERALE", codici ISBN, numeri romani), '
+        + '"Le risorse digitali" e ogni altro testo che non sia un titolo di sezione del capitolo. '
+        + 'Il titolo stesso del capitolo non è una sua sezione.\n'
+        + 'Per ogni sezione: number (stringa "N.X", metti pure una numerazione progressiva, verrà ricalcolata), '
+        + 'title (stringa in italiano con prima lettera maiuscola e resto minuscolo), page_start (intero, la pagina a fine riga).\n'
+        + 'Rispondi SOLO con questo JSON:\n'
+        + '{"chapters":[{"number":1,"title":"...","page_start":1,"sections":[{"number":"1.1","title":"...","page_start":1}]}]}')
+        :
         'Testo indice di "' + meta.title + '":\n\n'
         + srcText + '\n\n'
         + 'Estrai le sezioni SOLO per questi capitoli:\n'
@@ -4353,8 +4429,11 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
           });
 
           var chapterOwnText   = sliceTextByPageRange(inputText, pageOffsets, chTocStart, chTocNext);
-          var expectedNumbers  = findExpectedSectionNumbers(chapterOwnText, reqCh.number, discoveredLabels.numberedPrefixes)
-            .concat(findExpectedBoxAndBoilerplate(chapterOwnText, reqCh.number, discoveredLabels.fixed, discoveredLabels.numberedPrefixes));
+          // Libro non numerato: non c'è nessun "N.X" da cercare per certo nel
+          // testo, e il recupero mirato chiederebbe di nuovo numeri.
+          var expectedNumbers  = unnumberedMode ? [] :
+            findExpectedSectionNumbers(chapterOwnText, reqCh.number, discoveredLabels.numberedPrefixes)
+              .concat(findExpectedBoxAndBoilerplate(chapterOwnText, reqCh.number, discoveredLabels.fixed, discoveredLabels.numberedPrefixes));
           var actualNumbers   = got.sections.map(function(s){ return s.number; });
           var missingNumbers  = expectedNumbers.filter(function(n){ return actualNumbers.indexOf(n) === -1; });
 
@@ -4396,13 +4475,22 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
           }
         }
 
-        var spurious = dropSpuriousSections(got.sections, pageOffsets ? chapterOwnText : srcText);
-        if (spurious.dropped.length) {
-          console.info('Capitolo ' + reqCh.number + ': scartate ' + spurious.dropped.length
-            + ' voci non sezioni (QRcode / sottovoci non numerate nell\'indice): '
-            + spurious.dropped.map(function(s){ return s.number; }).join(', '));
+        if (unnumberedMode) {
+          var before = got.sections.length;
+          got.sections = normalizeUnnumberedSections(got.sections, reqCh.number, reqCh.title);
+          if (before !== got.sections.length) {
+            console.info('Capitolo ' + reqCh.number + ': ' + (before - got.sections.length)
+              + ' voci scartate (testo fisso, titolo del capitolo, duplicati).');
+          }
+        } else {
+          var spurious = dropSpuriousSections(got.sections, pageOffsets ? chapterOwnText : srcText);
+          if (spurious.dropped.length) {
+            console.info('Capitolo ' + reqCh.number + ': scartate ' + spurious.dropped.length
+              + ' voci non sezioni (QRcode / sottovoci non numerate nell\'indice): '
+              + spurious.dropped.map(function(s){ return s.number; }).join(', '));
+          }
+          got.sections = spurious.kept;
         }
-        got.sections = spurious.kept;
 
         // Ordina per pagina: le sezioni recuperate con il tentativo mirato
         // finirebbero altrimenti in coda invece che nella loro posizione naturale.
