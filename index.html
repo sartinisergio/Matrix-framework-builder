@@ -3626,6 +3626,22 @@ function sliceTextByPageRange(text, pageOffsets, fromPage, toPage) {
   return text.slice(startOffset, endOffset);
 }
 
+// Inverso di sliceTextByPageRange: a quale pagina reale del PDF appartiene
+// una posizione nel testo. Serve a correggere il page_start di un capitolo
+// con un dato deterministico invece di quello (a volte sbagliato) indovinato
+// dal modello — osservato concretamente: un capitolo con page_start errato
+// (es. 1 invece di 26) fa calcolare al capitolo precedente un intervallo di
+// pagine vuoto ("da pagina 1 a pagina 1"), che disattiva in silenzio la
+// verifica delle sue sezioni senza generare nessun errore o avviso.
+function pageForOffset(offset, pageOffsets) {
+  var bestPage = 1, bestOffset = -1;
+  Object.keys(pageOffsets).forEach(function(p) {
+    var off = pageOffsets[p];
+    if (off <= offset && off > bestOffset) { bestOffset = off; bestPage = +p; }
+  });
+  return bestPage;
+}
+
 // Verifica deterministica, non affidata al modello: nel testo grezzo di un
 // capitolo i marcatori di sezione "N.X" compaiono in chiaro (es. "19.3").
 // Cercandoli con una regex sappiamo con certezza quali sezioni esistono
@@ -3871,6 +3887,30 @@ function checkIndexQuality(chapters, totalPages, unresolvedGaps, failedChunks) {
     }
   }
 
+  // Lo stesso "number" assegnato a due sezioni con titolo diverso nello
+  // stesso capitolo non è un duplicato da scartare: sono due contenuti
+  // diversi a cui il modello ha dato per errore lo stesso numero — capitava
+  // in silenzio, nessun controllo sopra lo intercetta (non manca nessuna
+  // sezione, i titoli non sono ripetuti, il conteggio non è troppo basso).
+  chapters.forEach(function(c) {
+    var byNumber = {};
+    (c.sections || []).forEach(function(s) {
+      var t = (s.title || '').trim();
+      if (!t) return;
+      byNumber[s.number] = byNumber[s.number] || [];
+      if (byNumber[s.number].indexOf(t) === -1) byNumber[s.number].push(t);
+    });
+    Object.keys(byNumber).forEach(function(n) {
+      if (byNumber[n].length > 1) {
+        warnings.push(
+          'Capitolo ' + c.number + ': la sezione "' + n + '" ha ' + byNumber[n].length
+          + ' titoli diversi assegnati allo stesso numero (' + byNumber[n].join(' / ')
+          + ') — probabile errore di numerazione, verifica il PDF.'
+        );
+      }
+    });
+  });
+
   return warnings;
 }
 
@@ -4036,6 +4076,20 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
       }
     }
 
+    // Corregge page_start di ogni capitolo con il dato deterministico (dove
+    // sta davvero il marcatore "CAPITOLO N" nel testo), invece di fidarsi di
+    // quello indovinato dal modello — osservato concretamente: un capitolo
+    // con page_start errato disattivava in silenzio la verifica del
+    // capitolo precedente (vedi pageForOffset). Solo con un PDF reale
+    // (pageOffsets), non col testo incollato a mano.
+    if (pageOffsets) {
+      uniqueChapterMarkers.forEach(function(marker) {
+        if (chaptersByNumber[marker.number]) {
+          chaptersByNumber[marker.number].page_start = pageForOffset(marker.pos, pageOffsets);
+        }
+      });
+    }
+
     var chapters = Object.keys(chaptersByNumber)
       .map(function(k){ return chaptersByNumber[k]; })
       .sort(function(a,b){ return a.number - b.number; });
@@ -4096,11 +4150,17 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         + 'Il testo contiene sicuramente queste voci (alcune potrebbero non essere in questa porzione): '
         + missingNumbers.join(', ') + '.\n'
         + 'Estrai TUTTE le sezioni presenti in QUESTO testo, '
-        + 'inclusi eventuali riquadri "SALUTE E MEDICINA N.X" o "NUCLEI FONDANTI" come voci separate.\n'
+        + 'inclusi eventuali riquadri "SALUTE E MEDICINA N.X" o "RIQUADRO N.X" o "NUCLEI FONDANTI" come voci separate '
+        + '(usa il loro stesso numero, es. "RIQUADRO 6.1", MAI un numero diverso o inventato).\n'
+        + 'NON estrarre come sezione una didascalia di figura o tabella (es. "Figura 5.3 – ...", "Tabella 2.1 – ...", '
+        + 'spesso dentro un riquadro "QRcode..."): ignorala del tutto, non è una sezione anche se condivide la '
+        + 'numerazione "N.X" del capitolo.\n'
         + 'Per ogni sezione: number (stringa "N.X"), title (stringa in italiano, prima lettera maiuscola, resto minuscolo), page_start (intero).\n'
-        + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" può condividere il numero "N.X" con la sezione '
-        + 'a cui è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fonderle in una sola e non '
-        + 'scambiarne i titoli.\n'
+        + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" o "RIQUADRO N.X" può condividere il numero "N.X" con '
+        + 'la sezione a cui è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fonderle in una sola '
+        + 'e non scambiarne i titoli.\n'
+        + 'Non assegnare MAI lo stesso number a due voci diverse: se due contenuti diversi sembrano condividere lo '
+        + 'stesso "N.X", sono sotto-sezioni distinte — usa "N.X.1", "N.X.2" invece di ripetere lo stesso numero.\n'
         + 'Rispondi SOLO con questo JSON:\n'
         + '{"sections":[{"number":"' + reqCh.number + '.1","title":"...","page_start":1}]}';
 
@@ -4166,11 +4226,18 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         + chapterList + '\n\n'
         + 'Per ogni sezione: number (stringa OBBLIGATORIAMENTE nel formato "N.X" es. "9.1", "9.2"), title (stringa in italiano con prima lettera maiuscola e resto minuscolo), page_start (intero).\n'
         + 'Ignora "Cartella", "ABC di Istologia", "TAVOLA" — solo sezioni principali.\n'
-        + 'Includi ANCHE, come voci separate, i riquadri "SALUTE E MEDICINA N.X" e "NUCLEI FONDANTI" quando presenti '
-        + '(usa il loro stesso numero, es. "SALUTE E MEDICINA 6.1", come number).\n'
-        + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" può condividere il numero "N.X" con la sezione a cui '
-        + 'è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fondere le due voci in una sola e non '
-        + 'scambiarne i titoli — ciascuna mantiene il proprio titolo esatto.\n'
+        + 'NON estrarre come sezione una didascalia di figura o tabella (es. "Figura 5.3 – ...", "Tabella 2.1 – ...", '
+        + 'spesso dentro un riquadro "QRcode..."): è un riferimento a un\'immagine o a una tabella, non una sezione '
+        + 'dell\'indice, anche se condivide la numerazione "N.X" del capitolo — ignorala del tutto, non darle un numero.\n'
+        + 'Includi ANCHE, come voci separate, i riquadri "SALUTE E MEDICINA N.X", "RIQUADRO N.X" e "NUCLEI FONDANTI" '
+        + 'quando presenti (usa il loro stesso numero, es. "SALUTE E MEDICINA 6.1" o "RIQUADRO 6.1", come number — '
+        + 'MAI un numero diverso o inventato).\n'
+        + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" o "RIQUADRO N.X" può condividere il numero "N.X" con '
+        + 'la sezione a cui è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fondere le due voci '
+        + 'in una sola e non scambiarne i titoli — ciascuna mantiene il proprio titolo esatto.\n'
+        + 'Non assegnare MAI lo stesso number a due voci diverse dello stesso capitolo: se due contenuti diversi '
+        + 'sembrano condividere lo stesso "N.X", sono quasi certamente sotto-sezioni distinte — usa "N.X.1", "N.X.2" '
+        + 'per distinguerle invece di ripetere lo stesso numero.\n'
         + 'Rispondi SOLO con questo JSON:\n'
         + '{"chapters":[{"number":1,"title":"...","page_start":1,"sections":[{"number":"1.1","title":"...","page_start":1}]}]}';
 
@@ -4198,6 +4265,12 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         var got = resultByNumber[reqCh.number] ||
           { number: reqCh.number, title: reqCh.title, page_start: reqCh.page_start, sections: [] };
         got.sections = got.sections || [];
+        // Il page_start di reqCh è quello corretto in modo deterministico
+        // (vedi pageForOffset, sopra): quello eventualmente restituito dalla
+        // Chiamata 2 per lo stesso capitolo non è più affidabile di quello
+        // indovinato da Step 1, e senza questo override lo sovrascriveva in
+        // silenzio, vanificando la correzione appena fatta.
+        got.page_start = reqCh.page_start;
 
         if (pageOffsets) {
           var globalIdx      = ci + lj;
