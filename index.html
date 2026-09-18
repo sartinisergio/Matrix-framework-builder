@@ -3575,7 +3575,9 @@ async function chatJsonCompletion(systemPrompt, userPrompt, maxTokens, label) {
   // formato: senza questo controllo esplicito il motivo reale (blocco troppo
   // denso per il budget di token) resta invisibile in console.
   if (d.choices[0].finish_reason === 'length') {
-    throw new Error(label + ' risposta troncata da max_tokens (blocco troppo denso): ' + raw.substring(0, 200));
+    var truncErr = new Error(label + ' risposta troncata da max_tokens (blocco troppo denso): ' + raw.substring(0, 200));
+    truncErr.truncated = true; // permette a chi chiama di dividere e riprovare invece di arrendersi
+    throw truncErr;
   }
   try {
     var m = raw.match(/\{[\s\S]*\}/);
@@ -3599,6 +3601,11 @@ async function chatJsonCompletionWithRetry(systemPrompt, userPrompt, maxTokens, 
       return await chatJsonCompletion(systemPrompt, userPrompt, maxTokens, label);
     } catch(e) {
       lastError = e;
+      // Una risposta troncata da max_tokens tornerebbe troncata allo stesso modo
+      // su una richiesta identica: non ha senso riprovarla uguale, tanto vale
+      // lasciare che chi chiama la divida (vedi extractChaptersFromBlock /
+      // extractSectionsForPageRange) invece di sprecare una chiamata.
+      if (e.truncated) break;
       if (i < attempts - 1) {
         console.warn(label + ' tentativo ' + (i+1) + ' fallito, riprovo:', e.message);
         await new Promise(function(resolve){ setTimeout(resolve, 800); });
@@ -3905,23 +3912,23 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     var CHUNK_OVERLAP = 6000;
     var textChunks = splitTextIntoChunks(inputText, CHUNK_SIZE, CHUNK_OVERLAP);
 
-    // ── CHIAMATA 1: estrai lista capitoli, un blocco di testo alla volta ──
-    var chaptersByNumber = {};
-    var failedChunks     = [];
-    for (var tci = 0; tci < textChunks.length; tci++) {
-      var chunkPct = 15 + Math.round((tci / textChunks.length) * 20);
-      setProgress(chunkPct, 'Step 1/2 — Estrazione capitoli' +
-        (textChunks.length > 1 ? ' (blocco ' + (tci+1) + '/' + textChunks.length + ')' : '') + '...');
-
-      var chunkNote = textChunks.length > 1
-        ? '\n\nNOTA: questo è il blocco ' + (tci+1) + ' di ' + textChunks.length + ' in cui è stato diviso '
-          + 'il testo completo dell\'indice (troppo lungo per una sola richiesta). Estrai SOLO i capitoli '
-          + 'che compaiono per intero in QUESTO blocco.'
+    // Un blocco può risultare troppo denso di capitoli per QUALSIASI budget
+    // di risposta fissato a priori — non esiste un max_tokens "abbastanza
+    // grande" per ogni indice possibile (verificato: alzarlo due volte non
+    // ha chiuso il problema su un indice via via più dettagliato). Se la
+    // risposta risulta troncata, invece di perdere tutti i capitoli del
+    // blocco lo dividiamo a metà su un a-capo e riproviamo separatamente su
+    // ciascuna metà, ricorsivamente: si adatta da solo alla densità del
+    // libro, senza bisogno di ritoccare costanti ogni volta.
+    async function extractChaptersFromBlock(text, isPartial, blockLabel, depth) {
+      var chunkNote = isPartial
+        ? '\n\nNOTA: questo è un blocco parziale del testo completo dell\'indice (troppo lungo per una sola '
+          + 'richiesta). Estrai SOLO i capitoli che compaiono per intero in QUESTO blocco.'
         : '';
 
       var prompt1 =
         'Questo è il testo grezzo dell\'indice di "' + meta.title + '" di ' + meta.author + '.\n\n'
-        + 'TESTO:\n' + textChunks[tci] + chunkNote + '\n\n'
+        + 'TESTO:\n' + text + chunkNote + '\n\n'
         + 'ISTRUZIONI:\n'
         + '1. Estrai SOLO i capitoli principali (non le sezioni)\n'
         + '2. Per ogni capitolo: number (intero), title (stringa), page_start (intero)\n'
@@ -3936,8 +3943,34 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         + '{"chapters":[{"number":1,"title":"...","page_start":1}]}';
 
       try {
-        var step1Result = await chatJsonCompletionWithRetry(systemPrompt, prompt1, 4000, 'Step1', 1);
-        (step1Result.chapters || []).forEach(function(c) {
+        var result = await chatJsonCompletionWithRetry(systemPrompt, prompt1, 4000, blockLabel, 1);
+        return result.chapters || [];
+      } catch(e) {
+        if (e.truncated && depth < 6 && text.length > 500) {
+          var mid      = Math.floor(text.length / 2);
+          var splitAt  = text.lastIndexOf('\n', mid);
+          if (splitAt <= 0) splitAt = mid;
+          console.warn(blockLabel + ': risposta troncata, divido il blocco a metà e riprovo.');
+          var r1 = await extractChaptersFromBlock(text.slice(0, splitAt), true, blockLabel + 'a', depth + 1);
+          var r2 = await extractChaptersFromBlock(text.slice(splitAt),    true, blockLabel + 'b', depth + 1);
+          return r1.concat(r2);
+        }
+        throw e;
+      }
+    }
+
+    // ── CHIAMATA 1: estrai lista capitoli, un blocco di testo alla volta ──
+    var chaptersByNumber = {};
+    var failedChunks     = [];
+    for (var tci = 0; tci < textChunks.length; tci++) {
+      var chunkPct = 15 + Math.round((tci / textChunks.length) * 20);
+      setProgress(chunkPct, 'Step 1/2 — Estrazione capitoli' +
+        (textChunks.length > 1 ? ' (blocco ' + (tci+1) + '/' + textChunks.length + ')' : '') + '...');
+
+      try {
+        var blockChapters = await extractChaptersFromBlock(
+          textChunks[tci], textChunks.length > 1, 'Step1-blocco' + (tci+1), 0);
+        blockChapters.forEach(function(c) {
           if (c && c.number != null && !chaptersByNumber[c.number]) {
             c._srcChunk = tci;
             chaptersByNumber[c.number] = c;
@@ -3992,6 +4025,47 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     // etichette fisse) prima di verificare le sezioni — si somma, non
     // sostituisce, a quanto già noto da esperienza diretta.
     var discoveredLabels = discoverRecurringLabels(inputText, chapters.length);
+
+    // Anche il tentativo mirato su un singolo capitolo può non bastare: un
+    // capitolo molto denso (osservato: oltre 40 sezioni in un solo capitolo,
+    // e indici ancora più dettagliati di quello sono normali) può da solo
+    // superare qualunque budget fissato a priori. Stessa strategia di Step 1:
+    // se la risposta risulta troncata, dividiamo l'intervallo di PAGINE reali
+    // del capitolo a metà e riproviamo su ciascuna metà separatamente,
+    // ricorsivamente — si adatta da solo, non serve più ritoccare costanti.
+    async function extractSectionsForPageRange(reqCh, fromPage, toPage, missingNumbers, depth) {
+      var text = sliceTextByPageRange(inputText, pageOffsets, fromPage, toPage);
+      var retryPrompt =
+        'Testo del capitolo ' + reqCh.number + ' ("' + reqCh.title + '") di "' + meta.title + '"'
+        + (depth > 0 ? ' (porzione dalla pagina ' + fromPage + ' alla ' + toPage + ')' : '') + ':\n\n'
+        + text + '\n\n'
+        + 'Il testo contiene sicuramente queste voci (alcune potrebbero non essere in questa porzione): '
+        + missingNumbers.join(', ') + '.\n'
+        + 'Estrai TUTTE le sezioni presenti in QUESTO testo, '
+        + 'inclusi eventuali riquadri "SALUTE E MEDICINA N.X" o "NUCLEI FONDANTI" come voci separate.\n'
+        + 'Per ogni sezione: number (stringa "N.X"), title (stringa in italiano, prima lettera maiuscola, resto minuscolo), page_start (intero).\n'
+        + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" può condividere il numero "N.X" con la sezione '
+        + 'a cui è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fonderle in una sola e non '
+        + 'scambiarne i titoli.\n'
+        + 'Rispondi SOLO con questo JSON:\n'
+        + '{"sections":[{"number":"' + reqCh.number + '.1","title":"...","page_start":1}]}';
+
+      try {
+        var result = await chatJsonCompletion(
+          systemPrompt, retryPrompt, 4096,
+          'Step2-retry-cap' + reqCh.number + (depth ? ('-p' + depth) : ''));
+        return result.sections || [];
+      } catch(e) {
+        if (e.truncated && depth < 5 && (toPage - fromPage) > 1) {
+          var midPage = fromPage + Math.floor((toPage - fromPage) / 2);
+          console.warn('Step2-retry-cap' + reqCh.number + ': risposta troncata, divido in due porzioni di pagine e riprovo.');
+          var s1 = await extractSectionsForPageRange(reqCh, fromPage, midPage, missingNumbers, depth + 1);
+          var s2 = await extractSectionsForPageRange(reqCh, midPage, toPage, missingNumbers, depth + 1);
+          return s1.concat(s2);
+        }
+        throw e;
+      }
+    }
 
     // ── CHIAMATA 2: estrai sezioni per ogni capitolo ──
     // Gruppi da 3 capitoli (non più 6): con box "SALUTE E MEDICINA" e
@@ -4098,23 +4172,17 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
 
           if (missingNumbers.length) {
             try {
-              var retryPrompt =
-                'Testo del capitolo ' + reqCh.number + ' ("' + reqCh.title + '") di "' + meta.title + '":\n\n'
-                + chapterOwnText + '\n\n'
-                + 'Il testo contiene sicuramente queste voci: ' + missingNumbers.join(', ') + '.\n'
-                + 'Estrai TUTTE le sezioni del capitolo (anche quelle eventualmente già note, non solo quelle elencate sopra), '
-                + 'inclusi eventuali riquadri "SALUTE E MEDICINA N.X" o "NUCLEI FONDANTI" come voci separate.\n'
-                + 'Per ogni sezione: number (stringa "N.X"), title (stringa in italiano, prima lettera maiuscola, resto minuscolo), page_start (intero).\n'
-                + 'ATTENZIONE: un riquadro come "SALUTE E MEDICINA N.X" può condividere il numero "N.X" con la sezione '
-                + 'a cui è affiancato, ma sono DUE VOCI DISTINTE, entrambe da includere: non fonderle in una sola e non '
-                + 'scambiarne i titoli.\n'
-                + 'Rispondi SOLO con questo JSON:\n'
-                + '{"sections":[{"number":"' + reqCh.number + '.1","title":"...","page_start":1}]}';
+              // chNextPage è null solo per l'ultimo capitolo del libro (nessun
+              // limite superiore reale): totalPages+1 è un numero concreto che
+              // produce lo stesso taglio di testo (fino alla fine) ma permette
+              // comunque la bisezione se anche questo capitolo risulta troppo denso.
+              var toPageForRetry = chNextPage != null ? chNextPage : (totalPages ? totalPages + 1 : chRangeStart + 200);
+              var retrySections  = await extractSectionsForPageRange(
+                reqCh, chRangeStart, toPageForRetry, missingNumbers, 0);
 
-              var retryResult = await chatJsonCompletion(systemPrompt, retryPrompt, 4096, 'Step2-retry-cap' + reqCh.number);
               var mergedByNumber = {};
               got.sections.forEach(function(s){ mergedByNumber[s.number] = s; });
-              (retryResult.sections || []).forEach(function(s) {
+              retrySections.forEach(function(s) {
                 if (s && s.number != null && !mergedByNumber[s.number]) mergedByNumber[s.number] = s;
               });
               got.sections = Object.keys(mergedByNumber).map(function(k){ return mergedByNumber[k]; })
