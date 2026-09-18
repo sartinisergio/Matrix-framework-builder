@@ -3982,6 +3982,47 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
       }
     }
 
+    // Verifica deterministica dei capitoli, non affidata al modello — osservato
+    // concretamente: su un blocco lungo il modello può fermarsi a un certo
+    // capitolo e restituire comunque un JSON valido (nessun troncamento, quindi
+    // finish_reason non lo segnala e la bisezione sopra non si attiva). Il
+    // marcatore "CAPITOLO N" compare in chiaro nel testo: se un numero manca da
+    // chaptersByNumber pur avendo un marcatore con abbondante testo dopo (non è
+    // un rimando isolato tipo "vedi Capitolo 5"), lo recuperiamo con una singola
+    // chiamata mirata su quel solo capitolo invece di lasciarlo sparire.
+    var chapterMarkerRe = /CAPITOLO\s+(\d+)/gi, cmMatch, allChapterMarkers = [];
+    while ((cmMatch = chapterMarkerRe.exec(inputText)) !== null) {
+      allChapterMarkers.push({ number: +cmMatch[1], pos: cmMatch.index });
+    }
+    var seenMarkerNums = {};
+    var uniqueChapterMarkers = allChapterMarkers.filter(function(mk) {
+      if (seenMarkerNums[mk.number]) return false;
+      seenMarkerNums[mk.number] = true;
+      return true;
+    }).sort(function(a, b){ return a.pos - b.pos; });
+
+    for (var umi = 0; umi < uniqueChapterMarkers.length; umi++) {
+      var marker = uniqueChapterMarkers[umi];
+      if (chaptersByNumber[marker.number]) continue;
+      var nextMarkerPos = umi + 1 < uniqueChapterMarkers.length ? uniqueChapterMarkers[umi + 1].pos : inputText.length;
+      if (nextMarkerPos - marker.pos <= 300) continue; // troppo vicino: probabile rimando, non un capitolo vero
+
+      try {
+        var recoverPrompt =
+          'Testo dell\'indice di "' + meta.title + '" a partire dal marcatore "CAPITOLO ' + marker.number + '":\n\n'
+          + inputText.slice(marker.pos, nextMarkerPos) + '\n\n'
+          + 'Estrai SOLO questo capitolo: number (intero, ' + marker.number + '), title (stringa), page_start (intero).\n'
+          + 'Rispondi SOLO con questo JSON: {"number":' + marker.number + ',"title":"...","page_start":1}';
+        var recovered = await chatJsonCompletion(systemPrompt, recoverPrompt, 500, 'Step1-recupero-cap' + marker.number);
+        if (recovered && recovered.number != null) {
+          recovered._srcChunk = -1; // recuperato fuori dal ciclo a blocchi
+          chaptersByNumber[recovered.number] = recovered;
+        }
+      } catch(e) {
+        console.warn('Recupero mirato capitolo ' + marker.number + ' fallito:', e.message);
+      }
+    }
+
     var chapters = Object.keys(chaptersByNumber)
       .map(function(k){ return chaptersByNumber[k]; })
       .sort(function(a,b){ return a.number - b.number; });
