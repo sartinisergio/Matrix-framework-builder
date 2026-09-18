@@ -3696,6 +3696,42 @@ function findExpectedSectionNumbers(text, chapterNumber, numberedPrefixes) {
   return found;
 }
 
+// Filtro finale su voci che non sono vere sezioni d'indice. Due casi, osservati
+// sul JSON di Bonaldo "Molecole, cellule, organismi":
+//  1. Voci "QRcodeNN.M": sono rimandi a contenuti online (EdiSES), non sezioni.
+//     Il modello le includeva solo in alcuni capitoli, con pagina inventata e
+//     a volte una didascalia di figura come titolo. Sempre da scartare.
+//  2. Numeri "N.X.Y" assegnati dal modello a righe che nell'indice originale
+//     sono sottovoci NON numerate (es. "Riproduzione asessuata" sotto 32.2):
+//     presenti solo negli ultimi capitoli, quindi granularità incoerente.
+//     Si scartano solo se quel numero non compare come intestazione nel testo
+//     sorgente del capitolo E la sezione madre "N.X" esiste già: così restano
+//     le sottosezioni davvero numerate dal libro, e le "N.X.1/N.X.2" che il
+//     prompt chiede per risolvere due contenuti con lo stesso "N.X" quando
+//     non c'è una madre (se la madre c'è, resta la madre; la voce scartata
+//     finisce in console, non nel JSON).
+// I box "RIQUADRO N.X"/"SALUTE E MEDICINA N.X" non sono toccati.
+function dropSpuriousSections(sections, sourceText) {
+  var kept = [];
+  var dropped = [];
+  var numbers = {};
+  sections.forEach(function(s){ numbers[String(s.number)] = true; });
+
+  sections.forEach(function(s) {
+    var num = String(s.number == null ? '' : s.number).trim();
+    if (/^QRCODE/i.test(num)) { dropped.push(s); return; }
+
+    var m = /^(\d+\.\d+)\.\d+/.exec(num);
+    if (m && numbers[m[1]]) {
+      var headingRe = new RegExp('(?:^|[^\\w.])' + escapeRegExp(num) + '(?!\\d)\\s+["“«A-ZÀ-Ý]');
+      if (!headingRe.test(sourceText || '')) { dropped.push(s); return; }
+    }
+    kept.push(s);
+  });
+
+  return { kept: kept, dropped: dropped };
+}
+
 // Stesso principio delle sezioni numerate, esteso ai box numerati e alle
 // etichette fisse ricorrenti (note + scoperte automaticamente per questo libro):
 // cercarle nel testo del capitolo e confrontarle con quanto estratto, invece
@@ -4359,6 +4395,14 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
             }
           }
         }
+
+        var spurious = dropSpuriousSections(got.sections, pageOffsets ? chapterOwnText : srcText);
+        if (spurious.dropped.length) {
+          console.info('Capitolo ' + reqCh.number + ': scartate ' + spurious.dropped.length
+            + ' voci non sezioni (QRcode / sottovoci non numerate nell\'indice): '
+            + spurious.dropped.map(function(s){ return s.number; }).join(', '));
+        }
+        got.sections = spurious.kept;
 
         // Ordina per pagina: le sezioni recuperate con il tentativo mirato
         // finirebbero altrimenti in coda invece che nella loro posizione naturale.
