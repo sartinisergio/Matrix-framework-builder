@@ -3745,15 +3745,20 @@ function dropSpuriousSections(sections, sourceText) {
 // su 33 capitoli); uno non numerato ne ha praticamente zero (Alberts: 0 su 24).
 function isUnnumberedSectionBook(text, numChapters) {
   var re = /(?:^|\s)(\d{1,2})\.(\d{1,2})\s+["“«A-ZÀ-Ý]/g;
+  // "QUADRO 2.1 ...", "Figura 3.2 ..." usano la stessa forma "N.X" ma sono
+  // riquadri/didascalie, non sezioni: in Alberts sono decine e facevano
+  // sembrare numerato un indice che non lo è.
+  var labelBeforeRe = /(?:QUADRO|RIQUADRO|FIGURA|TABELLA|BOX|SCHEDA|PARAGRAFO|FIG\.|TAB\.)\s*$/i;
   var seen = {};
   var count = 0;
   var m;
   while ((m = re.exec(text)) !== null) {
     if (Number(m[1]) < 1 || Number(m[1]) > numChapters) continue;
+    if (labelBeforeRe.test(text.slice(Math.max(0, m.index - 20), m.index + (m[0].length - m[0].trimStart().length)))) continue;
     var key = m[1] + '.' + m[2];
     if (!seen[key]) { seen[key] = true; count++; }
   }
-  return count < numChapters;
+  return count < numChapters / 2;
 }
 
 // Intestazioni di pagina e testo fisso che il modello scambia per sezioni (a
@@ -3775,6 +3780,7 @@ function normalizeUnnumberedSections(sections, chapterNumber, chapterTitle) {
     var title = String(s.title == null ? '' : s.title).trim();
     var key = compactTitle(title);
     if (!key) return;
+    if (/^(?:RI)?QUADRO\b/i.test(String(s.number == null ? '' : s.number).trim())) return; // riquadro con la sua etichetta
     if (UNNUMBERED_JUNK_TITLES.indexOf(key) !== -1) return;
     if (key === chapterKey) return;                 // il titolo del capitolo non è una sua sezione
     if (/^978-?\d/.test(title)) return;             // codice ISBN dell'intestazione di pagina
@@ -4332,6 +4338,9 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         + 'Le sezioni sono SOLO i titoli di primo livello di ciascun capitolo: righe di titolo senza pallino o punto elenco, '
         + 'con il numero di pagina alla fine (es. "Dal DNA all\'RNA321" = titolo "Dal DNA all\'RNA", pagina 321).\n'
         + 'IGNORA COMPLETAMENTE le righe precedute da un pallino o punto elenco (●, •, o qualunque simbolo): sono sottovoci, non sezioni.\n'
+        + 'IGNORA COMPLETAMENTE anche i riquadri: le righe che iniziano con "QUADRO N.X" o "RIQUADRO N.X" '
+        + '(es. "QUADRO 7.1 Motivi strutturali comuni…") e le loro sottovoci non sono sezioni del capitolo e non vanno restituite, '
+        + 'nemmeno con un numero diverso.\n'
         + 'Ignora anche: "PROBLEMI", "BIBLIOGRAFIA", intestazioni di pagina ("INDICE GENERALE", codici ISBN, numeri romani), '
         + '"Le risorse digitali" e ogni altro testo che non sia un titolo di sezione del capitolo. '
         + 'Il titolo stesso del capitolo non è una sua sezione.\n'
