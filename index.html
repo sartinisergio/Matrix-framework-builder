@@ -3749,15 +3749,32 @@ function isUnnumberedSectionBook(text, numChapters) {
   // riquadri/didascalie, non sezioni: in Alberts sono decine e facevano
   // sembrare numerato un indice che non lo è.
   var labelBeforeRe = /(?:QUADRO|RIQUADRO|FIGURA|TABELLA|BOX|SCHEDA|PARAGRAFO|FIG\.|TAB\.)\s*$/i;
-  var seen = {};
-  var count = 0;
+  // Etichette di box che il libro usa con un numero "N.X" proprio (POSTER 2.1,
+  // PER SAPERNE DI PIÙ 1.1, SCHEDA DI APPROFONDIMENTO 1.1...): parole in
+  // MAIUSCOLO che precedono almeno 4 numeri diversi. Le sezioni vere hanno
+  // davanti cose sempre diverse (la pagina precedente, un titolo). Senza
+  // questo Alberts Essenziale e Kring risultavano "numerati" per i soli box.
+  var hits = [];
   var m;
   while ((m = re.exec(text)) !== null) {
     if (Number(m[1]) < 1 || Number(m[1]) > numChapters) continue;
-    if (labelBeforeRe.test(text.slice(Math.max(0, m.index - 20), m.index + (m[0].length - m[0].trimStart().length)))) continue;
-    var key = m[1] + '.' + m[2];
-    if (!seen[key]) { seen[key] = true; count++; }
+    var before = text.slice(Math.max(0, m.index - 25), m.index + (m[0].length - m[0].trimStart().length));
+    if (labelBeforeRe.test(before)) continue;
+    var w = /([A-ZÀ-Ý]{3,})\s*$/.exec(before);
+    hits.push({ key: m[1] + '.' + m[2], word: w ? w[1] : null });
   }
+  var numbersByWord = {};
+  hits.forEach(function(h) {
+    if (!h.word) return;
+    numbersByWord[h.word] = numbersByWord[h.word] || {};
+    numbersByWord[h.word][h.key] = true;
+  });
+  var seen = {};
+  var count = 0;
+  hits.forEach(function(h) {
+    if (h.word && Object.keys(numbersByWord[h.word]).length >= 4) return;
+    if (!seen[h.key]) { seen[h.key] = true; count++; }
+  });
   return count < numChapters / 2;
 }
 
@@ -3805,6 +3822,16 @@ function normalizeUnnumberedSections(sections, chapterNumber, chapterTitle) {
 // inventati); qui il criterio è uno solo e sempre lo stesso.
 // Ritorna [{title, page}] con le pagine del LIBRO, senza assegnare i capitoli:
 // si assegnano dopo, in base al page_start dei capitoli già verificati.
+// Il parser qui sotto è tarato su UN formato: titolo senza pallino e sottovoci
+// col pallino "•" (Alberts Biologia: 44 per capitolo; tutti gli altri libri
+// provati 0-1). Applicato a formati diversi (pallino "■", titoli in maiuscolo,
+// puntini di guida, pagina dopo una virgola) darebbe voci sbagliate senza
+// segnalarlo: per questo la soglia è stretta e il resto non viene interpretato.
+function hasBulletedSubitems(text, numChapters) {
+  var bullets = (String(text || '').match(/•/g) || []).length;
+  return numChapters > 0 && bullets / numChapters >= 15;
+}
+
 function parseUnnumberedTocHeadings(raw) {
   var t = String(raw || '').replace(/\s+/g, ' ');
   // intestazioni di pagina: ISBN, "INDICE GENERALE", numeri romani isolati
@@ -4286,15 +4313,24 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     // sostituisce, a quanto già noto da esperienza diretta.
     var discoveredLabels = discoverRecurringLabels(inputText, chapters.length);
     var unnumberedMode   = isUnnumberedSectionBook(inputText, chapters.length);
-    if (unnumberedMode) console.info('Libro con sezioni non numerate: uso i soli titoli di primo livello, numerati dal codice.');
-    // Se il testo ha la struttura attesa (titoli senza pallino, sottovoci con
-    // pallino) i titoli si leggono senza AI; altrimenti si ricade sul prompt.
+    // Indice senza numeri di sezione. Il parser deterministico vale SOLO per
+    // il formato con sottovoci a pallino (Alberts): applicato a un altro
+    // formato produce voci sbagliate senza dare alcun segnale (provato su
+    // Alessandro, Belsky, Schacter, Verrocchio, Brooker, Feldman). Negli altri
+    // casi non si inventano sezioni: si restituiscono i soli capitoli e si avvisa.
     var deterministicHeads = null;
+    var chaptersOnlyMode   = false;
+    var structureWarnings  = [];
     if (unnumberedMode) {
-      var parsedHeads = parseUnnumberedTocHeadings(inputText);
+      var parsedHeads = hasBulletedSubitems(inputText, chapters.length) ? parseUnnumberedTocHeadings(inputText) : [];
       if (parsedHeads.length >= chapters.length / 2) {
         deterministicHeads = parsedHeads;
-        console.info('Sezioni lette direttamente dal testo (' + parsedHeads.length + ' titoli), senza chiamate AI.');
+        console.info('Libro con sezioni non numerate: ' + parsedHeads.length + ' titoli letti direttamente dal testo, senza chiamate AI.');
+      } else {
+        chaptersOnlyMode = true;
+        structureWarnings.push(
+          'Questo indice non ha sezioni numerate e non ha una struttura riconoscibile automaticamente: '
+          + 'sono stati estratti solo i capitoli, le sezioni non sono state inventate. Aggiungile a mano se servono.');
       }
     }
 
@@ -4380,6 +4416,16 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         continue;
       }
 
+      if (chaptersOnlyMode) {
+        chunk.forEach(function(reqChOnly) {
+          allChaptersWithSections.push({
+            number: reqChOnly.number, title: reqChOnly.title,
+            page_start: reqChOnly.page_start, sections: []
+          });
+        });
+        continue;
+      }
+
       setProgress(pct, 'Sezioni capitoli ' + (ci+1) + '-' + Math.min(ci+chunkSize, chapters.length) + '...');
 
       var chapterList = chunk.map(function(c) {
@@ -4407,25 +4453,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
         srcText = textChunks.slice(minSrc, Math.min(maxSrc + 2, textChunks.length)).join('\n');
       }
 
-      var prompt2 = unnumberedMode ?
-        ('Testo indice di "' + meta.title + '":\n\n'
-        + srcText + '\n\n'
-        + 'In questo indice le sezioni NON hanno numeri. Estrai le sezioni SOLO per questi capitoli:\n'
-        + chapterList + '\n\n'
-        + 'Le sezioni sono SOLO i titoli di primo livello di ciascun capitolo: righe di titolo senza pallino o punto elenco, '
-        + 'con il numero di pagina alla fine (es. "Dal DNA all\'RNA321" = titolo "Dal DNA all\'RNA", pagina 321).\n'
-        + 'IGNORA COMPLETAMENTE le righe precedute da un pallino o punto elenco (●, •, o qualunque simbolo): sono sottovoci, non sezioni.\n'
-        + 'IGNORA COMPLETAMENTE anche i riquadri: le righe che iniziano con "QUADRO N.X" o "RIQUADRO N.X" '
-        + '(es. "QUADRO 7.1 Motivi strutturali comuni…") e le loro sottovoci non sono sezioni del capitolo e non vanno restituite, '
-        + 'nemmeno con un numero diverso.\n'
-        + 'Ignora anche: "PROBLEMI", "BIBLIOGRAFIA", intestazioni di pagina ("INDICE GENERALE", codici ISBN, numeri romani), '
-        + '"Le risorse digitali" e ogni altro testo che non sia un titolo di sezione del capitolo. '
-        + 'Il titolo stesso del capitolo non è una sua sezione.\n'
-        + 'Per ogni sezione: number (stringa "N.X", metti pure una numerazione progressiva, verrà ricalcolata), '
-        + 'title (stringa in italiano con prima lettera maiuscola e resto minuscolo), page_start (intero, la pagina a fine riga).\n'
-        + 'Rispondi SOLO con questo JSON:\n'
-        + '{"chapters":[{"number":1,"title":"...","page_start":1,"sections":[{"number":"1.1","title":"...","page_start":1}]}]}')
-        :
+      var prompt2 =
         'Testo indice di "' + meta.title + '":\n\n'
         + srcText + '\n\n'
         + 'Estrai le sezioni SOLO per questi capitoli:\n'
@@ -4515,11 +4543,8 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
           });
 
           var chapterOwnText   = sliceTextByPageRange(inputText, pageOffsets, chTocStart, chTocNext);
-          // Libro non numerato: non c'è nessun "N.X" da cercare per certo nel
-          // testo, e il recupero mirato chiederebbe di nuovo numeri.
-          var expectedNumbers  = unnumberedMode ? [] :
-            findExpectedSectionNumbers(chapterOwnText, reqCh.number, discoveredLabels.numberedPrefixes)
-              .concat(findExpectedBoxAndBoilerplate(chapterOwnText, reqCh.number, discoveredLabels.fixed, discoveredLabels.numberedPrefixes));
+          var expectedNumbers  = findExpectedSectionNumbers(chapterOwnText, reqCh.number, discoveredLabels.numberedPrefixes)
+            .concat(findExpectedBoxAndBoilerplate(chapterOwnText, reqCh.number, discoveredLabels.fixed, discoveredLabels.numberedPrefixes));
           var actualNumbers   = got.sections.map(function(s){ return s.number; });
           var missingNumbers  = expectedNumbers.filter(function(n){ return actualNumbers.indexOf(n) === -1; });
 
@@ -4561,22 +4586,13 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
           }
         }
 
-        if (unnumberedMode) {
-          var before = got.sections.length;
-          got.sections = normalizeUnnumberedSections(got.sections, reqCh.number, reqCh.title);
-          if (before !== got.sections.length) {
-            console.info('Capitolo ' + reqCh.number + ': ' + (before - got.sections.length)
-              + ' voci scartate (testo fisso, titolo del capitolo, duplicati).');
-          }
-        } else {
-          var spurious = dropSpuriousSections(got.sections, pageOffsets ? chapterOwnText : srcText);
-          if (spurious.dropped.length) {
-            console.info('Capitolo ' + reqCh.number + ': scartate ' + spurious.dropped.length
-              + ' voci non sezioni (QRcode / sottovoci non numerate nell\'indice): '
-              + spurious.dropped.map(function(s){ return s.number; }).join(', '));
-          }
-          got.sections = spurious.kept;
+        var spurious = dropSpuriousSections(got.sections, pageOffsets ? chapterOwnText : srcText);
+        if (spurious.dropped.length) {
+          console.info('Capitolo ' + reqCh.number + ': scartate ' + spurious.dropped.length
+            + ' voci non sezioni (QRcode / sottovoci non numerate nell\'indice): '
+            + spurious.dropped.map(function(s){ return s.number; }).join(', '));
         }
+        got.sections = spurious.kept;
 
         // Ordina per pagina: le sezioni recuperate con il tentativo mirato
         // finirebbero altrimenti in coda invece che nella loro posizione naturale.
@@ -4611,7 +4627,7 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     document.getElementById('bookJsonPreview').textContent =
       JSON.stringify(BOOK_JSON, null, 2);
 
-    var warnings = checkIndexQuality(sortedChapters, totalPages, unresolvedGaps, failedChunks);
+    var warnings = structureWarnings.concat(checkIndexQuality(sortedChapters, totalPages, unresolvedGaps, failedChunks));
     renderIndexQualityWarnings(warnings);
 
     BOOK_STEP = 3;
