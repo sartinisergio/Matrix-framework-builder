@@ -3797,6 +3797,52 @@ function normalizeUnnumberedSections(sections, chapterNumber, chapterTitle) {
   });
 }
 
+// Estrazione DETERMINISTICA (senza AI) dei titoli di primo livello da un indice
+// non numerato in cui le sottovoci hanno un pallino (osservato: Alberts). Il
+// testo estratto da pdf.js è una riga sola: ogni voce termina con la sua
+// pagina, le sottovoci iniziano con "•", i titoli di sezione no. Chiedere al
+// modello di distinguerli dava risultati incoerenti (capitoli vuoti, titoli
+// inventati); qui il criterio è uno solo e sempre lo stesso.
+// Ritorna [{title, page}] con le pagine del LIBRO, senza assegnare i capitoli:
+// si assegnano dopo, in base al page_start dei capitoli già verificati.
+function parseUnnumberedTocHeadings(raw) {
+  var t = String(raw || '').replace(/\s+/g, ' ');
+  // intestazioni di pagina: ISBN, "INDICE GENERALE", numeri romani isolati
+  t = t.replace(/©\s*978-[\d-]+/g, ' ').replace(/INDICE GENERALE/gi, ' ');
+  t = t.replace(/ ([IVXLC]{2,7}) /g, ' ');
+  // "C A P I T O L O 2 4" (lettere e cifre spaziate) → marcatore univoco
+  t = t.replace(/C ?A ?P ?I ?T ?O ?L ?O (\d)(?: (\d))? (?=\S)/g, function(m, a, b) {
+    return '§CAP' + a + (b || '') + '§ ';
+  });
+
+  // Una voce finisce dove c'è un numero di pagina: numero isolato seguito da
+  // pallino, marcatore di capitolo, intestazione in maiuscolo o fine testo.
+  // Un numero dentro un titolo ("I 20 amminoacidi") è seguito da minuscola.
+  var re = / (\d{1,4})(?= (?:•|§CAP|P R O B|B I B L|[A-ZÀ-Ý“«‘"])|\s*$)/g;
+  var heads = [];
+  var last = 0, m;
+  while ((m = re.exec(t)) !== null) {
+    var text = t.slice(last, m.index).trim();
+    var page = Number(m[1]);
+    last = m.index + m[0].length;
+
+    if (text.indexOf('§CAP') !== -1) continue;             // capitolo: già noto da Step 1
+    text = text.replace(/^(?:Indice generale\s*)+/i, '').trim();
+    if (!text || text.charAt(0) === '•') continue;         // sottovoce
+    if (/^(?:[A-Z] ){3,}/.test(text)) continue;            // "P R O B L E M I"
+    if (/^(?:RI)?QUADRO\s+\d/i.test(text)) continue;       // riquadro
+    if (/^(?:PARTE|UNIT[AÀ])(?:\s+\d+)?$/i.test(text)) continue;
+    if (/^Le risorse digitali/i.test(text)) {
+      // il blocco pubblicitario di fine libro si incolla al titolo che segue
+      // nell'ordine di lettura: teniamo solo ciò che viene dopo l'ultimo punto
+      text = text.slice(text.lastIndexOf('. ') + 2).trim();
+      if (!text || /^Le risorse digitali/i.test(text)) continue;
+    }
+    heads.push({ title: text, page: page });
+  }
+  return heads;
+}
+
 // Stesso principio delle sezioni numerate, esteso ai box numerati e alle
 // etichette fisse ricorrenti (note + scoperte automaticamente per questo libro):
 // cercarle nel testo del capitolo e confrontarle con quanto estratto, invece
@@ -4241,6 +4287,16 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     var discoveredLabels = discoverRecurringLabels(inputText, chapters.length);
     var unnumberedMode   = isUnnumberedSectionBook(inputText, chapters.length);
     if (unnumberedMode) console.info('Libro con sezioni non numerate: uso i soli titoli di primo livello, numerati dal codice.');
+    // Se il testo ha la struttura attesa (titoli senza pallino, sottovoci con
+    // pallino) i titoli si leggono senza AI; altrimenti si ricade sul prompt.
+    var deterministicHeads = null;
+    if (unnumberedMode) {
+      var parsedHeads = parseUnnumberedTocHeadings(inputText);
+      if (parsedHeads.length >= chapters.length / 2) {
+        deterministicHeads = parsedHeads;
+        console.info('Sezioni lette direttamente dal testo (' + parsedHeads.length + ' titoli), senza chiamate AI.');
+      }
+    }
 
     // Anche il tentativo mirato su un singolo capitolo può non bastare: un
     // capitolo molto denso (osservato: oltre 40 sezioni in un solo capitolo,
@@ -4303,6 +4359,27 @@ async function generateBookJson(inputText, pageOffsets, totalPages) {
     for (var ci = 0; ci < chapters.length; ci += chunkSize) {
       var chunk = chapters.slice(ci, ci + chunkSize);
       var pct   = 40 + Math.round((ci / chapters.length) * 55);
+
+      if (deterministicHeads) {
+        // I capitoli (Step 1) hanno già page_start del libro verificato: i titoli
+        // appartengono al capitolo il cui intervallo di pagine li contiene.
+        chunk.forEach(function(reqChDet, ljDet) {
+          var nextDet  = chapters[ci + ljDet + 1];
+          var fromPage = reqChDet.page_start || 0;
+          var toPage   = nextDet && nextDet.page_start > fromPage ? nextDet.page_start : Infinity;
+          var secs = deterministicHeads
+            .filter(function(h){ return h.page >= fromPage && h.page < toPage; })
+            .map(function(h){ return { number: '', title: h.title, page_start: h.page }; });
+          allChaptersWithSections.push({
+            number:     reqChDet.number,
+            title:      reqChDet.title,
+            page_start: reqChDet.page_start,
+            sections:   normalizeUnnumberedSections(secs, reqChDet.number, reqChDet.title)
+          });
+        });
+        continue;
+      }
+
       setProgress(pct, 'Sezioni capitoli ' + (ci+1) + '-' + Math.min(ci+chunkSize, chapters.length) + '...');
 
       var chapterList = chunk.map(function(c) {
