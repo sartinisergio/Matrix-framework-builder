@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Correggi indice</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#fff; --ink:#1c2230; --muted:#66708a; --line:#dfe3ec;
+  --accent:#2b5cd6; --accent-bg:#e6edfc; --ok:#177a4c; --ok-bg:#e2f4ea; --warn:#a15c00; --warn-bg:#fff3dc; --bad:#b3261e; --bad-bg:#fde8e6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151c; --panel:#1a1f2b; --ink:#e7eaf2; --muted:#98a1b8; --line:#2b3242;
+    --accent:#7fa2ff; --accent-bg:#1f2b4d; --ok:#59d29a; --ok-bg:#153326; --warn:#ffc266; --warn-bg:#3a2c12; --bad:#ff8f86; --bad-bg:#3d1f1c;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:12px 20px 2px}
+h1{font-size:17px;margin:0}
+.sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+.bar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:10px 20px}
+.bar label{font-size:12px;color:var(--muted);display:block}
+.bar input[type=file]{display:block;margin-top:3px;max-width:230px}
+select,button,input{font:inherit;color:inherit}
+input[type=text],input[type=number]{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:4px 7px}
+button{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.status{font-size:12.5px;color:var(--muted);padding:0 20px}
+main{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:14px;padding:10px 20px 24px}
+@media (max-width:1000px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 150px);min-height:240px}
+@media (max-width:1000px){.card{max-height:70vh}}
+.card>h2{font-size:13.5px;margin:0;padding:10px 14px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.card>h2 .grow{flex:1}
+.scroll{overflow:auto;flex:1;padding:6px 8px 10px}
+.sum{padding:9px 14px;font-weight:600;border-bottom:1px solid var(--line)}
+.sum.ok{background:var(--ok-bg);color:var(--ok)} .sum.bad{background:var(--bad-bg);color:var(--bad)} .sum.warn{background:var(--warn-bg);color:var(--warn)}
+.pb{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:8px;margin-bottom:4px;border:1px solid var(--line);font-size:12.5px}
+.pb.bad{border-left:4px solid var(--bad)} .pb.warn{border-left:4px solid var(--warn)} .pb.note{border-left:4px solid var(--muted);color:var(--muted)}
+.pb .t{flex:1;min-width:0;cursor:pointer}
+.pb .t:hover{text-decoration:underline}
+.pb button{padding:3px 9px;font-size:12px;white-space:nowrap}
+.chap{border:1px solid var(--line);border-radius:10px;margin:8px 4px;overflow:hidden}
+.chap>.hd{display:flex;gap:8px;align-items:center;padding:6px 9px;background:var(--accent-bg)}
+.chap .num{font-weight:700;min-width:26px}
+.sec{display:flex;gap:6px;align-items:center;padding:3px 9px;border-top:1px solid var(--line)}
+.sec input.n{width:64px}
+.chap input.t,.sec input.t{flex:1;min-width:0}
+input.p{width:64px}
+.x,.pl{border:none;background:none;color:var(--muted);padding:2px 6px}
+.x:hover{color:var(--bad)} .pl:hover{color:var(--accent)}
+.sec.sugg{background:var(--warn-bg)}
+.sec .tag{font-size:10.5px;color:var(--warn);white-space:nowrap}
+.sec.bad{background:var(--bad-bg)}
+@keyframes flash{from{background:var(--warn-bg)}to{background:transparent}}
+.flash{animation:flash 1.6s ease-out}
+.empty{color:var(--muted);padding:14px;font-size:13px}
+.hint{color:var(--muted);font-size:12px;padding:8px 14px;border-top:1px solid var(--line)}
+.pick{border:1px solid var(--accent);background:var(--accent-bg);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12.5px}
+.pick .note{color:var(--muted);margin:2px 0 6px}
+.pick .cl{display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:5px}
+.pick small{color:var(--muted)}
+.pick button{white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <h1>Correggi indice</h1>
+  <div class="sub">Apri il JSON generato dall'app, correggi i problemi segnalati e salva. Facoltativo: carica anche il PDF, e per le sezioni mancanti ti propongo titolo e pagina letti dal testo. Non modifica l'app e i file originali.</div>
+</header>
+<div class="bar">
+  <div><label>1. JSON dell'indice<input type="file" id="fJson" accept="application/json,.json"></label></div>
+  <div><label>2. PDF dell'indice (facoltativo, per i suggerimenti)<input type="file" id="fPdf" accept="application/pdf"></label></div>
+  <button id="bUndo" disabled>↶ Annulla</button>
+  <button id="bOnly" disabled>Solo capitoli con problemi</button>
+  <button id="bSave" class="pri" disabled>Salva JSON corretto</button>
+</div>
+<div class="status" id="status">Nessun file caricato.</div>
+<main>
+  <section class="card">
+    <h2>Problemi <span class="grow"></span><button id="bAll" hidden></button></h2>
+    <div id="sum" class="sum" hidden></div>
+    <div class="scroll" id="probs"><div class="empty">Carica un JSON per iniziare.</div></div>
+    <div class="hint">Clicca su un problema per andare alla riga. «Aggiungi» inserisce la voce nella posizione giusta.</div>
+  </section>
+  <section class="card">
+    <h2>Indice <span class="grow"></span><span class="status" id="count"></span></h2>
+    <div class="scroll" id="tree"><div class="empty">—</div></div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = t => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 22);   // confronto largo (titoli troncati)
+const nf = t => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');                    // titolo intero: per doppioni e presenze
+
+let meta = {}, model = [], fileName = 'indice', history = [], onlyBad = false;
+let sugg = null;        // {num -> [{title, pg}]} letto dal PDF (solo voci numerate N.X)
+let pdfBusy = false;
+let pdfLines = [];      // tutte le righe del PDF: {p, s, f, text, title, pg, bullet, caps}
+let pdfByNorm = new Map();
+let secStyle = null, styleInfo = '';   // aspetto dei titoli di sezione, imparato dal JSON + PDF
+let forcedStyle = null;                 // aspetto scelto dall'utente tra i gruppi di titoli del PDF
+
+/* ---------- imparare l'aspetto delle sezioni (libri senza numeri) ---------- */
+// i titoli tutti MAIUSCOLI del PDF si scrivono come fa l'app: iniziale maiuscola, il resto minuscolo
+const niceTitle = l => l.caps ? (l.title.charAt(0) + l.title.slice(1).toLowerCase()) : l.title;
+const styleKey = l => l.s + '|' + l.f + '|' + (l.bullet ? 1 : 0) + '|' + (l.caps ? 1 : 0);
+const styleName = k => { const [s, f, b, c] = k.split('|'); return 'corpo ' + s + (b === '1' ? ', con pallino' : ', senza pallino') + (c === '1' ? ', MAIUSCOLO' : ''); };
+function numberedPdf() { return sugg && Object.keys(sugg).length >= Math.max(3, model.length / 2); }
+function learnStyle() {
+  secStyle = null; styleInfo = '';
+  if (!pdfLines.length || !model.length || numberedPdf()) return;
+  const counts = {}; let total = 0;
+  model.forEach(c => c.secs.forEach(s => {
+    const arr = pdfByNorm.get(norm(s.title)); if (!arr) return;
+    const m = arr.find(l => l.pg === s.page); if (!m) return;
+    const k = styleKey(m); counts[k] = (counts[k] || 0) + 1; total++;
+  }));
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const nSec = model.reduce((n, c) => n + c.secs.length, 0);
+  if (top && top[1] >= 3 && top[1] >= 0.6 * total) { secStyle = top[0]; styleInfo = 'aspetto delle sezioni riconosciuto dal PDF (' + styleName(top[0]) + ', ' + top[1] + ' corrispondenze)'; }
+  else if (forcedStyle) { secStyle = forcedStyle; styleInfo = 'sezioni scelte da te: ' + styleName(forcedStyle); }
+  else if (total) styleInfo = 'aspetto delle sezioni non uniforme nel PDF: scegli tu il gruppo di titoli che sono sezioni';
+  else if (!nSec) styleInfo = 'l\'indice non ha sezioni: a sinistra scegli quale gruppo di titoli del PDF sono le sezioni';
+  else styleInfo = 'nessun titolo del JSON ritrovato nel PDF: controlla di aver caricato il PDF giusto';
+}
+// gruppi di titoli del PDF con lo stesso aspetto, tra cui l'utente sceglie quello delle sezioni
+function styleClusters() {
+  const skip = new Set(model.map(c => nf(c.title))), groups = new Map();
+  pdfLines.forEach(l => {
+    if (l.pg == null || l.title.length < 3 || l.title.length > 130) return;
+    if (skip.has(nf(l.title)) || JUNK.test(l.title.replace(/[^\p{L} ]/gu, '').trim())) return;
+    const k = styleKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(l);
+  });
+  const n = Math.max(1, model.length);
+  return [...groups.entries()].filter(([, v]) => v.length >= Math.max(6, n * 0.8))
+    .map(([k, v]) => { v.sort((a, b) => a.pg - b.pg); const pick = [0, Math.floor(v.length / 3), Math.floor(2 * v.length / 3)].map(i => v[i]); return { key: k, count: v.length, samples: pick }; })
+    .sort((a, b) => Math.abs(Math.log(a.count / (n * 5))) - Math.abs(Math.log(b.count / (n * 5)))).slice(0, 6);
+}
+// titoli del PDF con l'aspetto delle sezioni che nell'indice non ci sono
+function styleCands() {
+  if (!secStyle) return [];
+  // presente = titolo identico a un capitolo o a una sezione, oppure sezione del JSON che è l'inizio (troncato) del titolo del PDF
+  const have = new Set(), secFull = []; model.forEach(c => { have.add(nf(c.title)); c.secs.forEach(s => { const t = nf(s.title); have.add(t); if (t.length >= 15) secFull.push(t); }); });
+  const chs = model.map((c, ci) => ({ ci, page: c.page })).filter(x => x.page != null).sort((a, b) => a.page - b.page);
+  const out = [], seen = new Set();
+  pdfLines.forEach(l => {
+    if (styleKey(l) !== secStyle || l.pg == null || l.title.length < 3) return;
+    const k = nf(l.title); if (have.has(k) || secFull.some(t => k.startsWith(t))) return;
+    if (JUNK.test(l.title.replace(/[^\p{L} ]/gu, '').trim())) return;    // «Domande», «Concetti chiave»…
+    const dk = k + '|' + l.pg; if (seen.has(dk)) return; seen.add(dk);
+    let ci = -1; chs.forEach(x => { if (x.page <= l.pg) ci = x.ci; });
+    if (ci >= 0) out.push({ line: l, ci, used: false });
+  });
+  return out;
+}
+
+/* ---------- caricamento / salvataggio ---------- */
+function loadJson(obj, name) {
+  const chs = Array.isArray(obj) ? obj : obj.index_chapters;
+  if (!Array.isArray(chs)) { alert('Il file non contiene «index_chapters».'); return; }
+  meta = Array.isArray(obj) ? {} : Object.assign({}, obj); delete meta.index_chapters;
+  fileName = (name || 'indice').replace(/\.json$/i, '');
+  model = chs.map(c => ({ number: c.number, title: c.title || '', page: c.page_start ?? null,
+    secs: (c.sections || []).map(s => ({ number: s.number == null ? '' : String(s.number), title: s.title || '', page: s.page_start ?? null })) }));
+  history = []; onlyBad = false; forcedStyle = null; learnStyle(); renderAll();
+  $('bSave').disabled = false;
+  $('status').textContent = fileName + '.json: ' + model.length + ' capitoli' + (sugg ? ' · PDF caricato' + (styleInfo ? ' · ' + styleInfo : ' · suggerimenti attivi') : '');
+}
+function toObj() {
+  return Object.assign({}, meta, { index_chapters: model.map(c => ({ number: c.number, title: c.title, page_start: c.page,
+    sections: c.secs.map(s => ({ number: s.number, title: s.title, page_start: s.page })) })) });
+}
+function save() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(toObj(), null, 2) + '\n'], { type: 'application/json' }));
+  a.download = fileName.replace(/_corretto$/, '') + '_corretto.json'; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- cronologia (annulla) ---------- */
+function snap() { history.push(JSON.stringify(model)); if (history.length > 30) history.shift(); $('bUndo').disabled = false; }
+function undo() { if (!history.length) return; model = JSON.parse(history.pop()); $('bUndo').disabled = !history.length; renderAll(); }
+
+/* ---------- utilità di numerazione ---------- */
+const secX = (c, s) => { const m = /^(\d+)\.(\d+)$/.exec(s.number || ''); return m && +m[1] === +c.number ? +m[2] : null; };
+function isSeq(c) { return c.secs.length > 0 && c.secs.every((s, i) => s.number === c.number + '.' + (i + 1)); }
+function renumber(c) { c.secs.forEach((s, i) => { s.number = c.number + '.' + (i + 1); }); }
+
+/* ---------- analisi ---------- */
+const JUNK = /^(?:domande|problemi|bibliografia|concetti chiave|parole chiave|risorse digitali|le risorse digitali|prefazione|indice generale|indice analitico|sommario)$/i;
+const SPURIOUS = /©|indice\s?generale|978-?\d/i;
+const cleanSpurious = t => { const x = t.replace(/^[?\s]*(?:©\s*[\d-]+\s*)?(?:[ivxlc]+\s+)?indice\s?generale\s*/i, '').trim(); return x ? x.charAt(0).toUpperCase() + x.slice(1) : t; };
+const BOX = /^(?:RI)?QUADRO\b|^SALUTE E MEDICINA\b|^NUCLEI FONDANTI\b|^CONCETTI CHIAVE\b|^RISORSE DIGITALI\b|^POSTER\b/i;
+function analyze() {
+  const P = [];
+  const add = (sev, text, ci, sj, act) => P.push({ sev, text, ci, sj, act });
+  if (!model.length) return P;
+  if (pdfLines.length) { learnStyle(); if ($('status') && model.length && sugg) $('status').textContent = fileName + '.json: ' + model.length + ' capitoli · PDF caricato' + (styleInfo ? ' · ' + styleInfo : ''); }
+  const cands = styleCands();
+  const nums = model.map(c => +c.number), seen = {};
+  nums.forEach((n, i) => { if (seen[n] !== undefined) add('bad', 'Capitolo ' + n + ' duplicato', i); seen[n] = i; });
+  const mn = Math.min(...nums), mx = Math.max(...nums);
+  for (let n = mn; n <= mx; n++) if (!(n in seen)) add('bad', 'Capitolo ' + n + ' mancante (lo strumento non lo può aggiungere: rileggilo nel PDF)', Math.max(0, nums.findIndex(x => x > n)));
+  const chsByPage = model.map((c, ci) => ({ ci, page: c.page })).filter(x => x.page != null).sort((a, b) => a.page - b.page);
+  const chapterOfPage = pg => { let r = -1; chsByPage.forEach(x => { if (x.page <= pg) r = x.ci; }); return r; };
+  let prev = 0;
+  model.forEach((c, ci) => {
+    if (c.page == null) add('bad', 'Cap. ' + c.number + ': pagina mancante', ci);
+    else { if (c.page < prev) add('bad', 'Cap. ' + c.number + ': pagina ' + c.page + ' inferiore al capitolo precedente (' + prev + ')', ci); prev = Math.max(prev, c.page); }
+    if (!c.secs.length) add('warn', 'Cap. ' + c.number + ' «' + c.title.slice(0, 40) + '»: nessuna sezione (può essere corretto)', ci);
+    const byX = {}; let lastP = c.page || 0; const xs = [];
+    // stessa sezione due volte: stesso titolo e stessa pagina = doppione (si toglie); stesso titolo su pagine diverse = da valutare
+    const seenT = {};
+    c.secs.forEach((s, sj) => {
+      const k = nf(s.title); if (!k || s.title.length < 3) return;
+      if (seenT[k] === undefined) { seenT[k] = sj; return; }
+      const first = c.secs[seenT[k]];
+      if (first.page === s.page) add('bad', 'Cap. ' + c.number + ': «' + s.title.slice(0, 40) + '» compare due volte (p. ' + s.page + ')', ci, sj, { label: 'Elimina il doppione', fn: () => del(ci, sj) });
+      else add('warn', 'Cap. ' + c.number + ': il titolo «' + s.title.slice(0, 40) + '» è ripetuto (p. ' + first.page + ' e p. ' + s.page + ')', ci, sj);
+    });
+    c.secs.forEach((s, sj) => {
+      const num = (s.number || '').trim(), m = /^(\d+)\.(\d+)$/.exec(num);
+      if (!s.title.trim()) add('bad', 'Sezione ' + (num || '(senza numero)') + ': titolo mancante', ci, sj);
+      else if (JUNK.test(s.title.replace(/[^\p{L} ]/gu, '').trim())) add('warn', 'Cap. ' + c.number + ': «' + s.title + '» sembra testo fisso del libro, non una sezione', ci, sj, { label: 'Elimina', fn: () => del(ci, sj) });
+      if (s.page == null) add('bad', 'Sezione ' + (num || '?') + ': pagina mancante', ci, sj);
+      if (SPURIOUS.test(s.title)) { const cl = cleanSpurious(s.title); add('bad', 'Cap. ' + c.number + ': il titolo «' + s.title.slice(0, 44) + '…» contiene testo estraneo (intestazione di pagina)', ci, sj, cl && cl !== s.title ? { label: 'Ripulisci', fn: () => { snap(); s.title = cl; renderAll(); } } : undefined); }
+      const kOut = (s.page != null && c.page != null) ? chapterOfPage(s.page) : -1, outside = kOut >= 0 && kOut !== ci;
+      if (outside) {
+        // se il PDF conosce la pagina di questa sezione dentro il suo capitolo, l'errore è la pagina: si propone quella;
+        // altrimenti la sezione è finita nel capitolo sbagliato e si propone di spostarla
+        const nextPg = model[ci + 1] && model[ci + 1].page != null ? model[ci + 1].page : 1e9;
+        let own = sugg && (sugg[num] || []).find(e => e.pg != null && e.pg >= c.page && e.pg < nextPg);
+        if (!own) { const arr = (pdfByNorm.get(norm(s.title)) || []).filter(l => l.pg != null && l.pg >= c.page && l.pg < nextPg).sort((a, b) => a.pg - b.pg); if (arr.length) own = { pg: arr[0].pg }; }
+        if (own) add('bad', 'Sezione ' + (num || '?') + ' «' + s.title.slice(0, 30) + '»: la pagina ' + s.page + ' non è del cap. ' + c.number + ' (pp. ' + c.page + '–' + (nextPg < 1e9 ? nextPg - 1 : 'fine') + ')', ci, sj, { label: 'Usa p. ' + own.pg + ' (dal PDF)', fn: () => { snap(); s.page = own.pg; renderAll(); } });
+        else add('bad', 'Sezione «' + s.title.slice(0, 36) + '» (p. ' + s.page + '): la pagina è del cap. ' + model[kOut].number + ', non del ' + c.number, ci, sj, { label: 'Sposta nel cap. ' + model[kOut].number, fn: () => moveSec(ci, sj, kOut) });
+      }
+      if (!m) {
+        if (/^QR/i.test(num)) add('bad', 'Cap. ' + c.number + ': «' + num + '» è un rimando online, non una sezione', ci, sj, { label: 'Elimina', fn: () => del(ci, sj) });
+        else if (BOX.test(num)) add('note', 'Cap. ' + c.number + ': box «' + num + '»', ci, sj);
+        else if (/^\d+\.\d+\.\d+/.test(num)) add('note', 'Cap. ' + c.number + ': sottosezione a 3 livelli «' + num + '»', ci, sj);
+        else add('bad', 'Cap. ' + c.number + ': numero non valido «' + num + '»', ci, sj);
+        return;
+      }
+      if (+m[1] !== +c.number) add('bad', 'Cap. ' + c.number + ': sezione ' + num + ' con prefisso sbagliato', ci, sj);
+      const x = +m[2];
+      if (byX[x] !== undefined) add('bad', 'Numero ' + num + ' usato due volte («' + c.secs[byX[x]].title.slice(0, 24) + '» / «' + s.title.slice(0, 24) + '»)', ci, sj);
+      byX[x] = sj; xs.push(x);
+      if (s.page != null && !outside) {
+        if (s.page < lastP) {
+          let cand = sugg && (sugg[num] || []).find(e => e.pg != null && e.pg >= lastP && e.pg !== s.page);
+          if (!cand) {   // libri senza numeri: stessa riga del PDF cercata per titolo
+            const arr = (pdfByNorm.get(norm(s.title)) || []).filter(l => l.pg != null && l.pg >= lastP && l.pg !== s.page).sort((a, b) => a.pg - b.pg);
+            if (arr.length) cand = { pg: arr[0].pg };
+          }
+          add('bad', 'Sezione ' + num + ': pagina ' + s.page + ' inferiore alla precedente (' + lastP + ')', ci, sj,
+            cand ? { label: 'Usa p. ' + cand.pg + ' (dal PDF)', fn: () => { snap(); s.page = cand.pg; renderAll(); } } : undefined);
+        }
+        lastP = Math.max(lastP, s.page);
+      }
+    });
+    if (xs.length) for (let x = 1; x <= Math.max(...xs); x++) if (byX[x] === undefined) {
+      const num = c.number + '.' + x;
+      let at = c.secs.findIndex(s => { const sx = secX(c, s); return sx !== null && sx > x; }); if (at < 0) at = c.secs.length;
+      const sg = suggestFor(ci, x, at, cands); if (sg && sg.cand) sg.cand.used = true;
+      add('bad', 'Manca la sezione ' + num + (sg ? ' — nel PDF: «' + sg.title.slice(0, 44) + (sg.title.length > 44 ? '…' : '') + '» p. ' + sg.pg : ''), ci, null, { label: 'Aggiungi', fn: () => addMissing(ci, x) });
+    }
+  });
+  // titoli del PDF con l'aspetto delle sezioni che nell'indice non risultano (libri senza numeri)
+  cands.filter(k => !k.used).forEach(k => add('warn', 'Nel PDF c\'è «' + k.line.title.slice(0, 50) + (k.line.title.length > 50 ? '…' : '') + '» (p. ' + k.line.pg + ') che non risulta nell\'indice del cap. ' + model[k.ci].number, k.ci, null, { label: 'Aggiungi', fn: () => addCandidate(k) }));
+  const pages = model.map(c => c.page).filter(x => x != null);
+  if (pages.length && Math.max(...pages) <= 30) add('warn', 'Pagine dei capitoli tutte ≤ 30: probabile pagina del PDF invece di quella del libro', 0);
+  return P;
+}
+
+/* ---------- modifiche ---------- */
+// Proposta di titolo e pagina per una sezione da inserire nel capitolo ci, in posizione «at».
+// 1) libri numerati: la riga «N.X …» del PDF; 2) libri senza numeri: un titolo del PDF con
+// l'aspetto delle sezioni, non ancora nell'indice, compreso tra le pagine dei vicini.
+function suggestFor(ci, x, at, cands) {
+  const c = model[ci], before = c.secs[at - 1], after = c.secs[at];
+  const nextPage = model[ci + 1] && model[ci + 1].page != null ? model[ci + 1].page : 1e9;
+  const lo = before && before.page != null ? before.page : (c.page ?? 0), hi = after && after.page != null ? after.page : nextPage;
+  const list = x != null && sugg && sugg[c.number + '.' + x];
+  if (list && list.length) { const e = list.find(e => e.pg != null && e.pg >= lo && e.pg <= hi) || list[0]; return { title: e.title, pg: e.pg }; }
+  const pool = cands || styleCands();
+  const cd = pool.find(k => k.ci === ci && !k.used && k.line.pg >= lo && k.line.pg <= hi);
+  return cd ? { title: niceTitle(cd.line), pg: cd.line.pg, cand: cd } : null;
+}
+function addMissing(ci, x) {
+  snap(); const c = model[ci];
+  let at = c.secs.findIndex(s => { const sx = secX(c, s); return sx !== null && sx > x; }); if (at < 0) at = c.secs.length;
+  const sg = suggestFor(ci, x, at);
+  c.secs.splice(at, 0, { number: c.number + '.' + x, title: sg ? sg.title : '', page: sg ? sg.pg : null, _sugg: !!sg });
+  onlyBad = false; renderAll(); focusRow(ci, at);
+}
+function addAfter(ci, sj) {
+  snap(); const c = model[ci], seq = isSeq(c), at = sj + 1;
+  const sg = suggestFor(ci, null, at);
+  c.secs.splice(at, 0, { number: '', title: sg ? sg.title : '', page: sg ? sg.pg : (c.secs[sj] ? c.secs[sj].page : c.page), _sugg: !!sg });
+  if (seq) renumber(c);
+  renderAll(); focusRow(ci, at);
+}
+function addFirst(ci) {
+  snap(); const c = model[ci], seq = isSeq(c) || !c.secs.length;
+  const sg = suggestFor(ci, null, 0);
+  c.secs.unshift({ number: seq ? c.number + '.1' : '', title: sg ? sg.title : '', page: sg ? sg.pg : c.page, _sugg: !!sg });
+  if (seq) renumber(c);
+  renderAll(); focusRow(ci, 0);
+}
+// sposta una sezione nel capitolo cui appartiene per pagina
+function moveSec(ci, sj, k) {
+  snap(); const c = model[ci], t = model[k], seqSrc = isSeq(c), seqDst = isSeq(t) || !t.secs.length;
+  const s = c.secs.splice(sj, 1)[0]; if (seqSrc) renumber(c);
+  let at = t.secs.findIndex(x => x.page != null && x.page > s.page); if (at < 0) at = t.secs.length;
+  t.secs.splice(at, 0, s);
+  if (seqDst) renumber(t); else s.number = t.number + '.' + (at + 1);
+  onlyBad = false; renderAll(); focusRow(k, at);
+}
+// tutti i titoli del PDF con l'aspetto delle sezioni che mancano nell'indice, in un colpo solo
+function addAllCands() {
+  const cs = styleCands().sort((a, b) => a.ci - b.ci || a.line.pg - b.line.pg);
+  if (!cs.length) return;
+  snap();
+  const seqBefore = model.map(c => isSeq(c) || !c.secs.length);
+  cs.forEach(k => {
+    const c = model[k.ci]; let at = c.secs.findIndex(s => s.page != null && s.page > k.line.pg); if (at < 0) at = c.secs.length;
+    c.secs.splice(at, 0, { number: '', title: niceTitle(k.line), page: k.line.pg, _sugg: true });
+  });
+  model.forEach((c, i) => { if (seqBefore[i]) renumber(c); else c.secs.forEach((s, j) => { if (!s.number) s.number = c.number + '.' + (j + 1); }); });
+  onlyBad = false; renderAll();
+}
+// titolo presente nel PDF ma non nell'indice (libri senza numeri): inserito nella posizione data dalla pagina
+function addCandidate(k) {
+  snap(); const c = model[k.ci], seq = isSeq(c);
+  let at = c.secs.findIndex(s => s.page != null && s.page > k.line.pg); if (at < 0) at = c.secs.length;
+  c.secs.splice(at, 0, { number: '', title: niceTitle(k.line), page: k.line.pg, _sugg: true });
+  if (seq) renumber(c); else c.secs[at].number = c.number + '.' + (at + 1);
+  onlyBad = false; renderAll(); focusRow(k.ci, at);
+}
+function del(ci, sj) {
+  snap(); const c = model[ci], seq = isSeq(c);
+  c.secs.splice(sj, 1); if (seq) renumber(c);
+  renderAll();
+}
+function focusRow(ci, sj) { const el = $('sec-' + ci + '-' + sj); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); const t = el.querySelector('input.t'); if (t) t.focus(); } }
+function jump(ci, sj) {
+  const el = (sj != null && sj !== undefined) ? $('sec-' + ci + '-' + sj) : $('ch-' + ci);
+  if (el) { el.scrollIntoView({ block: 'center' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+}
+
+/* ---------- disegno ---------- */
+function renderProblems(P) {
+  const bad = P.filter(p => p.sev === 'bad').length, warn = P.filter(p => p.sev === 'warn').length, note = P.filter(p => p.sev === 'note').length;
+  const sum = $('sum'); sum.hidden = false;
+  sum.className = 'sum ' + (bad ? 'bad' : warn ? 'warn' : 'ok');
+  sum.textContent = bad ? '✖ ' + bad + ' da correggere' + (warn ? ' · ' + warn + ' da valutare' : '') : warn ? '⚠ ' + warn + ' da valutare, nulla di grave' : '✔ Nessun problema';
+  const order = { bad: 0, warn: 1, note: 2 };
+  const list = P.slice().sort((a, b) => order[a.sev] - order[b.sev] || a.ci - b.ci);
+  // se non è noto l'aspetto delle sezioni, si propongono i gruppi di titoli del PDF e si sceglie con un clic
+  let chooser = '';
+  if (pdfLines.length && !numberedPdf() && !secStyle && model.length) {
+    const cl = styleClusters(); window._clusters = cl;
+    if (cl.length) chooser = '<div class="pick"><b>Quali sono le sezioni?</b><div class="note">Nel PDF ho trovato questi gruppi di titoli con lo stesso aspetto. Clicca su quello che contiene le sezioni (non i capitoli e non le sottovoci): poi le aggiungo tutte.</div>' +
+      cl.map((c, k) => '<div class="cl"><div><b>' + c.count + ' titoli</b> · ' + esc(styleName(c.key)) + '<br><small>es.: ' + c.samples.map(l => '«' + esc(niceTitle(l).slice(0, 44)) + '» p. ' + l.pg).join(' · ') + '</small></div><button data-cl="' + k + '">Sono le sezioni</button></div>').join('') + '</div>';
+  }
+  $('probs').innerHTML = chooser + (list.length ? list.map((p, k) => '<div class="pb ' + p.sev + '"><span class="t" data-k="' + k + '">' + esc(p.text) + '</span>' + (p.act ? '<button data-a="' + k + '">' + esc(p.act.label) + '</button>' : '') + '</div>').join('') : '<div class="empty">Tutto a posto.</div>');
+  $('probs').querySelectorAll('button[data-cl]').forEach(b => b.onclick = () => { forcedStyle = window._clusters[+b.dataset.cl].key; learnStyle(); $('status').textContent = fileName + '.json: ' + model.length + ' capitoli · PDF caricato · ' + styleInfo; renderAll(); });
+  $('probs').querySelectorAll('.t').forEach(el => el.onclick = () => { const p = list[+el.dataset.k]; jump(p.ci, p.sj); });
+  $('probs').querySelectorAll('button[data-a]').forEach(b => b.onclick = () => list[+b.dataset.a].act.fn());
+  $('bOnly').disabled = !P.length; $('bOnly').textContent = onlyBad ? 'Mostra tutti i capitoli' : 'Solo capitoli con problemi';
+  const nc = P.filter(p => p.sev === 'warn' && p.act && /^Nel PDF c'è/.test(p.text)).length;
+  $('bAll').hidden = nc < 3; $('bAll').textContent = 'Aggiungi tutti i ' + nc + ' titoli del PDF'; $('bAll').onclick = addAllCands;
+  return list;
+}
+function renderTree(P) {
+  const badCh = new Set(P.filter(p => p.sev !== 'note').map(p => p.ci));
+  let html = '';
+  model.forEach((c, ci) => {
+    if (onlyBad && !badCh.has(ci)) return;
+    html += '<div class="chap" id="ch-' + ci + '"><div class="hd"><span class="num">' + esc(c.number) + '</span><input class="t" type="text" value="' + esc(c.title) + '" data-c="' + ci + '" data-f="title">p. <input class="p" type="number" value="' + (c.page ?? '') + '" data-c="' + ci + '" data-f="page"><button class="pl" data-first="' + ci + '" title="Aggiungi una sezione all\'inizio">+</button></div>';
+    c.secs.forEach((s, sj) => {
+      const bad = !s.title.trim() || s.page == null;
+      html += '<div class="sec' + (s._sugg ? ' sugg' : '') + (bad ? ' bad' : '') + '" id="sec-' + ci + '-' + sj + '"><input class="n" type="text" value="' + esc(s.number) + '" data-c="' + ci + '" data-s="' + sj + '" data-f="number"><input class="t" type="text" value="' + esc(s.title) + '" data-c="' + ci + '" data-s="' + sj + '" data-f="title">p. <input class="p" type="number" value="' + (s.page ?? '') + '" data-c="' + ci + '" data-s="' + sj + '" data-f="page">' +
+        (s._sugg ? '<span class="tag">suggerito dal PDF: controlla</span>' : '') +
+        '<button class="pl" data-after="' + ci + ',' + sj + '" title="Aggiungi una sezione dopo questa">+</button><button class="x" data-del="' + ci + ',' + sj + '" title="Elimina">✕</button></div>';
+    });
+    if (!c.secs.length) html += '<div class="sec"><span class="empty" style="padding:2px">nessuna sezione</span></div>';
+    html += '</div>';
+  });
+  $('tree').innerHTML = html || '<div class="empty">Nessun capitolo da mostrare.</div>';
+  $('count').textContent = model.length + ' capitoli · ' + model.reduce((n, c) => n + c.secs.length, 0) + ' sezioni';
+  const t = $('tree');
+  t.querySelectorAll('input').forEach(inp => inp.oninput = () => {
+    const c = model[+inp.dataset.c], f = inp.dataset.f, obj = inp.dataset.s !== undefined ? c.secs[+inp.dataset.s] : c;
+    obj[f] = f === 'page' ? (inp.value === '' ? null : +inp.value) : inp.value;
+    if (obj._sugg && f !== 'number') { obj._sugg = false; const tag = inp.closest('.sec').querySelector('.tag'); if (tag) tag.remove(); inp.closest('.sec').classList.remove('sugg'); }
+    renderProblems(analyze());
+  });
+  t.querySelectorAll('input').forEach(inp => inp.onfocus = () => { if (!inp._snapped) { snap(); inp._snapped = true; } });
+  t.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const [i, j] = b.dataset.del.split(',').map(Number); del(i, j); });
+  t.querySelectorAll('[data-after]').forEach(b => b.onclick = () => { const [i, j] = b.dataset.after.split(',').map(Number); addAfter(i, j); });
+  t.querySelectorAll('[data-first]').forEach(b => b.onclick = () => addFirst(+b.dataset.first));
+}
+function renderAll() { const P = analyze(); renderProblems(P); renderTree(P); }
+
+/* ---------- suggerimenti dal PDF ---------- */
+async function readPdf(file) {
+  pdfBusy = true; $('status').textContent = 'Leggo il PDF…';
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const raw = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const c = await (await pdf.getPage(p)).getTextContent();
+      let cur = null; const push = () => { if (cur) { raw.push(cur); cur = null; } };
+      for (const it of c.items) {
+        const t = it.str; if (!t.trim()) continue;
+        const s = Math.round(Math.hypot(it.transform[0], it.transform[1]) * 2) / 2, y = it.transform[5], x = it.transform[4], w = it.width || 0, isNum = /^\d{1,4}$/.test(t.trim());
+        if (cur && Math.abs(cur.y - y) <= 2 && (isNum || x - cur.endX <= Math.max(2.5 * s, 18)) && x >= cur.x0 - 1) { cur.text += ' ' + t; cur.y = y; cur.endX = Math.max(cur.endX, x + w); continue; }
+        push(); cur = { p, y, s, f: it.fontName, x0: x, endX: x + w, text: t };
+      }
+      push();
+    }
+    const trail = t => { const m = /^(.*?\S)(?:\s*(?:\.{2,}|…)\s*|,\s+|\s+)(\d{1,4})$/.exec(t); return m && +m[2] <= 3000 ? { t: m[1].replace(/[\s.…]+$/, ''), pg: +m[2] } : null; };
+    const lines = [];
+    for (let i = 0; i < raw.length; i++) {
+      let x = Object.assign({}, raw[i]); x.text = x.text.replace(/\s+/g, ' ').trim();
+      // una riga senza pagina seguita, nello stesso stile e a distanza di interlinea, da una riga che ne
+      // prosegue la frase (inizia in minuscolo) o, nei titoli tutti MAIUSCOLI, è a sua volta tutta MAIUSCOLA
+      const allCaps = s => { const l = s.replace(/[^\p{L}]/gu, ''); return l.length >= 3 && l === l.toUpperCase(); };
+      while (!trail(x.text) && raw[i + 1] && raw[i + 1].p === x.p && raw[i + 1].s === x.s && raw[i + 1].f === x.f && x.y - raw[i + 1].y > 0 && x.y - raw[i + 1].y <= x.s * 1.9 && x.text.length > 3 &&
+             (/^[\p{Ll}(\-–]/u.test(raw[i + 1].text.trim()) || (allCaps(x.text) && allCaps(raw[i + 1].text) && !/^(?:\d|QR)/i.test(raw[i + 1].text.trim())))) { x.text += ' ' + raw[i + 1].text.replace(/\s+/g, ' ').trim(); x.y = raw[i + 1].y; i++; }
+      lines.push(x);
+    }
+    const map = {}; pdfLines = []; pdfByNorm = new Map();
+    lines.forEach(l => {
+      const tr = trail(l.text), text = tr ? tr.t : l.text.replace(/[\s.…]{3,}$/, '');
+      const first = [...text][0] || '', letters = text.replace(/[^\p{L}]/gu, '');
+      const title = text.replace(/^[^\p{L}\p{N}"“«]+\s*/u, '').replace(/(\p{Ll}) - (\p{Ll})/gu, '$1$2').trim();
+      const pl = { p: l.p, s: l.s, f: l.f, text, title, pg: tr ? tr.pg : null, bullet: !!first && !/[\p{L}\p{N}"“«'‘(]/u.test(first), caps: letters.length >= 4 && letters === letters.toUpperCase() };
+      pdfLines.push(pl); const nk = norm(title); if (nk) { if (!pdfByNorm.has(nk)) pdfByNorm.set(nk, []); pdfByNorm.get(nk).push(pl); }
+      const m = /^(\d{1,2}\.\d{1,3})[\s.)]+(.+)$/.exec(text); if (!m) return;
+      const numTitle = m[2].replace(/(\p{Ll}) - (\p{Ll})/gu, '$1$2').trim();
+      (map[m[1]] = map[m[1]] || []).push({ title: numTitle, pg: tr ? tr.pg : null });
+    });
+    sugg = map; const n = Object.keys(map).length; learnStyle();
+    $('status').textContent = file.name + ': ' + n + ' voci numerate trovate' + (styleInfo ? ' · ' + styleInfo : ' — i suggerimenti sono attivi') + (model.length ? '' : ' (carica ora il JSON)');
+  } catch (e) { sugg = null; pdfLines = []; secStyle = null; $('status').textContent = 'PDF non leggibile: ' + e.message; }
+  pdfBusy = false; renderAll();
+}
+
+/* ---------- eventi ---------- */
+$('fJson').onchange = async e => { const f = e.target.files[0]; if (f) { try { loadJson(JSON.parse(await f.text()), f.name); } catch (er) { alert('JSON non valido: ' + er.message); } } };
+$('fPdf').onchange = e => { if (e.target.files[0]) readPdf(e.target.files[0]); };
+$('bSave').onclick = save;
+$('bUndo').onclick = undo;
+$('bOnly').onclick = () => { onlyBad = !onlyBad; renderAll(); };
+const q = new URLSearchParams(location.search);       // solo per prove: ?json=<url>&pdf=<url>
+(async () => {
+  if (q.get('pdf')) { const b = await (await fetch(q.get('pdf'))).blob(); await readPdf(new File([b], q.get('pdf').split('/').pop())); }
+  if (q.get('json')) { loadJson(await (await fetch(q.get('json'))).json(), q.get('json').split('/').pop()); }
+})();
+</script>
+</body>
+</html>

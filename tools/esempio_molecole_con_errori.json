@@ -25,11 +25,6 @@
           "page_start": 5
         },
         {
-          "number": "1.3",
-          "title": "Origini della vita cellulare, ipotesi 2: la vita ha preso origine dalle sorgenti idrotermali sottomarine",
-          "page_start": 11
-        },
-        {
           "number": "1.4",
           "title": "Fotosintesi ossigenica: una rivoluzionaria “invenzione” dei cianobatteri",
           "page_start": 15
@@ -395,11 +390,6 @@
           "page_start": 289
         },
         {
-          "number": "11.3",
-          "title": "Membrana plasmatica delle cellule eucariote",
-          "page_start": 291
-        },
-        {
           "number": "11.4",
           "title": "Traffico di composti attraverso la membrana",
           "page_start": 295
@@ -545,11 +535,6 @@
           "page_start": 434
         },
         {
-          "number": "16.6",
-          "title": "Endosomi",
-          "page_start": 437
-        },
-        {
           "number": "16.7",
           "title": "Lisosomi",
           "page_start": 440
@@ -670,7 +655,7 @@
         {
           "number": "20.2",
           "title": "Trascrizione nelle cellule procariotiche",
-          "page_start": 513
+          "page_start": 5
         },
         {
           "number": "20.3",
@@ -838,11 +823,6 @@
           "page_start": 644
         },
         {
-          "number": "25.2",
-          "title": "Regolazione dell’espressione genica negli eucarioti",
-          "page_start": 650
-        },
-        {
           "number": "25.3",
           "title": "Controllo a livello genomico",
           "page_start": 653
@@ -851,11 +831,6 @@
           "number": "25.4",
           "title": "Controllo a livello della conformazione della cromatina",
           "page_start": 655
-        },
-        {
-          "number": "25.5",
-          "title": "Controllo a livello della trascrizione",
-          "page_start": 663
         },
         {
           "number": "25.6",
@@ -1089,6 +1064,11 @@
         {
           "number": "32.9",
           "title": "Imprinting",
+          "page_start": 848
+        },
+        {
+          "number": "QRcode32.1",
+          "title": "Autogamia e coniugazione",
           "page_start": 848
         }
       ]

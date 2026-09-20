@@ -1,0 +1,133 @@
+{
+  "id": "Alberts_Essenziale",
+  "title": "L'essenziale di biologia molecolare della cellula",
+  "author": "Alberts",
+  "publisher": "Zanichelli",
+  "subject": "Biologia semestre filtro",
+  "edition": "",
+  "year": null,
+  "volume": null,
+  "type": "concorrente",
+  "index_chapters": [
+    {
+      "number": 1,
+      "title": "Cellule: le unità fondamentali della vita",
+      "page_start": 1,
+      "sections": []
+    },
+    {
+      "number": 2,
+      "title": "I componenti chimici delle cellule",
+      "page_start": 43,
+      "sections": []
+    },
+    {
+      "number": 3,
+      "title": "Energia, catalisi e biosintesi",
+      "page_start": 85,
+      "sections": []
+    },
+    {
+      "number": 4,
+      "title": "Struttura e funzione delle proteine",
+      "page_start": 121,
+      "sections": []
+    },
+    {
+      "number": 5,
+      "title": "Dna e cromosomi",
+      "page_start": 179,
+      "sections": []
+    },
+    {
+      "number": 6,
+      "title": "Replicazione e riparazione del dna",
+      "page_start": 209,
+      "sections": []
+    },
+    {
+      "number": 7,
+      "title": "Dal dna alle proteine: come la cellula legge il genoma",
+      "page_start": 237,
+      "sections": []
+    },
+    {
+      "number": 8,
+      "title": "Il controllo dell’espressione genica",
+      "page_start": 277,
+      "sections": []
+    },
+    {
+      "number": 9,
+      "title": "Come evolvono i geni e i genomi",
+      "page_start": 306,
+      "sections": []
+    },
+    {
+      "number": 10,
+      "title": "Analisi della struttura e della funzione dei geni",
+      "page_start": 344,
+      "sections": []
+    },
+    {
+      "number": 11,
+      "title": "La struttura delle membrane",
+      "page_start": 379,
+      "sections": []
+    },
+    {
+      "number": 12,
+      "title": "Il trasporto attraverso le membrane cellulari",
+      "page_start": 404,
+      "sections": []
+    },
+    {
+      "number": 13,
+      "title": "Come le cellule traggono energia dal cibo",
+      "page_start": 443,
+      "sections": []
+    },
+    {
+      "number": 14,
+      "title": "La produzione di energia nei mitocondri e nei cloroplasti",
+      "page_start": 471,
+      "sections": []
+    },
+    {
+      "number": 15,
+      "title": "Compartimenti intracellulari e trasporto di proteine",
+      "page_start": 514,
+      "sections": []
+    },
+    {
+      "number": 16,
+      "title": "La segnalazione cellulare",
+      "page_start": 555,
+      "sections": []
+    },
+    {
+      "number": 17,
+      "title": "Il citoscheletro",
+      "page_start": 596,
+      "sections": []
+    },
+    {
+      "number": 18,
+      "title": "Il ciclo cellulare",
+      "page_start": 636,
+      "sections": []
+    },
+    {
+      "number": 19,
+      "title": "La riproduzione sessuata e la genetica",
+      "page_start": 681,
+      "sections": []
+    },
+    {
+      "number": 20,
+      "title": "Comunità di cellule: tessuti, cellule staminali e cancro",
+      "page_start": 720,
+      "sections": []
+    }
+  ]
+}
