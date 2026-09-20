@@ -1383,7 +1383,7 @@ function renderDashboard() {
           + '      <i class="fas fa-folder-open"></i> Apri'
           + '    </button>'
           + '    <button class="btn btn-danger btn-sm"'
-          + '      onclick="confirmDeleteProject(\'' + p.id + '\',\'' + escHtml(p.name) + '\')">'
+          + '      onclick="confirmDeleteProject(\'' + p.id + '\',\'' + escJsAttr(p.name) + '\')">'
           + '      <i class="fas fa-trash"></i>'
           + '    </button>'
           + '  </div>'
@@ -1555,7 +1555,7 @@ function renderIndexesGrid() {
           + '      <i class="fas fa-copy"></i>'
           + '    </button>'
           + '    <button class="btn btn-danger btn-sm"'
-          + '      onclick="confirmDeleteIndex(\'' + idx.id + '\',\'' + escHtml(idx.title || idx.id) + '\')">'
+          + '      onclick="confirmDeleteIndex(\'' + idx.id + '\',\'' + escJsAttr(idx.title || idx.id) + '\')">'
           + '      <i class="fas fa-trash"></i>'
           + '    </button>'
           + '  </div>'
@@ -2554,7 +2554,7 @@ function renderEvaluationCriteria() {
          + escHtml(val) + '</textarea>'
          + '  </div>'
          + '  <button class="btn btn-danger btn-sm" style="margin-top:24px;flex-shrink:0"'
-         + '    onclick="deleteCriterion(\'' + escHtml(key) + '\')"><i class="fas fa-trash"></i></button>'
+         + '    onclick="deleteCriterion(\'' + escJsAttr(key) + '\')"><i class="fas fa-trash"></i></button>'
          + '</div>';
   }).join('');
 }
@@ -3285,6 +3285,13 @@ function escHtml(str) {
   return String(str||'')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Testo dentro un attributo onclick="fn('...')": prima l'escape per la stringa JavaScript
+// tra apici, poi quello per l'attributo HTML. escHtml da sola non basta: un apostrofo nel
+// titolo ("L'essenziale…") chiudeva la stringa JS e il pulsante non faceva nulla.
+function escJsAttr(str) {
+  return escHtml(String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' '));
 }
 
 function showToast(msg, type) {
