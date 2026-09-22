@@ -3320,6 +3320,8 @@ var BOOK_PDF_PAGE_OFFSETS = null;
 var BOOK_JSON           = null;
 var BOOK_PDF_FILE       = null;   // il PDF caricato, per i suggerimenti della revisione
 var BOOK_LAST_INDEX_ID  = null;   // id dell'ultimo indice generato e salvato
+var BOOK_TAB            = 'pdf';  // sotto-tab attivo dello Step 2: pdf | text | tool
+var BOOK_TOOL_LOADED    = false;  // l'iframe di tools/segna_indice.html si carica una sola volta per apertura del modale
 
 // ── Apri modale ──────────────────────────────
 function openBookIndexModal() {
@@ -3330,6 +3332,8 @@ function openBookIndexModal() {
   BOOK_JSON              = null;
   BOOK_PDF_FILE          = null;
   BOOK_LAST_INDEX_ID     = null;
+  BOOK_TOOL_LOADED       = false;
+  document.getElementById('bookToolFrame').src = 'about:blank';
 
   // Reset campi
   ['bookTitle','bookAuthor','bookPublisher','bookSubject','bookId',
@@ -3358,7 +3362,7 @@ function updateBookUI() {
   document.getElementById('btnBookBack').style.display =
     BOOK_STEP > 1 ? 'inline-flex' : 'none';
   document.getElementById('btnBookNext').style.display =
-    BOOK_STEP < 3 ? 'inline-flex' : 'none';
+    (BOOK_STEP < 3 && !(BOOK_STEP === 2 && BOOK_TAB === 'tool')) ? 'inline-flex' : 'none';
   document.getElementById('btnBookCopy').style.display =
     BOOK_STEP === 3 ? 'inline-flex' : 'none';
   document.getElementById('btnBookDownload').style.display =
@@ -3419,12 +3423,63 @@ async function bookStepNext() {
   }
 }
 
-// ── Switch tab PDF / Testo ───────────────────
+// ── Switch tab PDF / Testo / Strumento senza AI ──
 function switchBookTab(tab) {
+  BOOK_TAB = tab;
   document.getElementById('bookTabPdf').style.display  = tab === 'pdf'  ? 'block' : 'none';
   document.getElementById('bookTabText').style.display = tab === 'text' ? 'block' : 'none';
+  document.getElementById('bookTabTool').style.display = tab === 'tool' ? 'block' : 'none';
   document.getElementById('tabPdf').classList.toggle('active',  tab === 'pdf');
   document.getElementById('tabText').classList.toggle('active', tab === 'text');
+  document.getElementById('tabTool').classList.toggle('active', tab === 'tool');
+  // L'iframe con lo strumento si carica una sola volta per apertura del modale: ricaricarlo ad ogni
+  // cambio di tab perderebbe il lavoro fatto (proposta automatica/guidata, righe aggiunte a mano).
+  if (tab === 'tool' && !BOOK_TOOL_LOADED) {
+    BOOK_TOOL_LOADED = true;
+    document.getElementById('bookToolFrame').src = 'tools/segna_indice.html';
+  }
+  updateBookUI();
+}
+
+// ── Riceve il JSON da tools/segna_indice.html, incorporato nell'iframe del tab "Costruisci senza AI" ──
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.tipo !== 'segna-indice:usa') return;
+  var iframe = document.getElementById('bookToolFrame');
+  if (!iframe || e.source !== iframe.contentWindow) return;
+  usaIndiceSenzaAI(e.data.json);
+});
+
+function usaIndiceSenzaAI(jsonDaStrumento) {
+  // I metadati restano quelli dello Step 1 (unica fonte, come per il percorso AI): lo strumento propone
+  // i suoi dal nome del file solo per comodità propria, non devono sovrascrivere quelli già scelti qui.
+  var meta = {
+    id:        document.getElementById('bookId').value.trim(),
+    title:     document.getElementById('bookTitle').value.trim(),
+    author:    document.getElementById('bookAuthor').value.trim(),
+    publisher: normalizePublisher(document.getElementById('bookPublisher').value.trim()),
+    subject:   document.getElementById('bookSubject').value.trim(),
+    edition:   document.getElementById('bookEdition').value.trim(),
+    year:      parseInt(document.getElementById('bookYear').value, 10) || null,
+    volume:    parseInt(document.getElementById('bookVolume').value, 10) || null,
+    type:      document.getElementById('bookType').value
+  };
+  var chapters = jsonDaStrumento.index_chapters || [];
+  var finalJson = Object.assign({}, meta, { index_chapters: chapters });
+  if (jsonDaStrumento.chapters_summary) finalJson.chapters_summary = jsonDaStrumento.chapters_summary;
+
+  BOOK_JSON = finalJson;
+  var savedIndexEntry = saveGeneratedIndex(finalJson);
+  BOOK_LAST_INDEX_ID = savedIndexEntry.id;
+  renderIndexesGrid();
+
+  document.getElementById('bookJsonPreview').textContent = JSON.stringify(BOOK_JSON, null, 2);
+
+  var warnings = checkIndexQuality(chapters, 0, [], []);
+  renderIndexQualityWarnings(warnings);
+
+  BOOK_STEP = 3;
+  updateBookUI();
+  showToast('✅ Indice importato dallo strumento — ' + chapters.length + ' capitol' + (chapters.length === 1 ? 'o' : 'i'));
 }
 
 // ── Gestione PDF ─────────────────────────────
@@ -5239,12 +5294,15 @@ function reviewGeneratedIndex() {
 
       <!-- STEP 2: Indice -->
       <div id="bookStep2" style="display:none">
-        <div style="display:flex;gap:8px;margin-bottom:16px">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
           <button class="tab-btn active" id="tabPdf" onclick="switchBookTab('pdf')">
             <i class="fas fa-file-pdf"></i> Carica PDF
           </button>
           <button class="tab-btn" id="tabText" onclick="switchBookTab('text')">
             <i class="fas fa-paste"></i> Incolla testo
+          </button>
+          <button class="tab-btn" id="tabTool" onclick="switchBookTab('tool')">
+            <i class="fas fa-hammer"></i> Costruisci senza AI
           </button>
         </div>
 
@@ -5269,6 +5327,18 @@ function reviewGeneratedIndex() {
             <textarea id="bookTextInput" rows="12"
               placeholder="Incolla il testo dell'indice copiato da Word, Acrobat o altro..."></textarea>
           </div>
+        </div>
+
+        <!-- Tab Strumento (senza AI) -->
+        <div id="bookTabTool" style="display:none">
+          <div class="callout info" style="margin-bottom:12px">
+            <span class="ci">ℹ️</span>
+            <div>Costruisci l'indice leggendo direttamente le posizioni del testo nel PDF: proposta automatica,
+              modalità guidata, confronto/unione tra le due e righe aggiunte a mano. Nessuna chiave API richiesta.
+              Quando hai finito, «Usa questo indice nell'app» porta il risultato allo Step 3, qui sotto.</div>
+          </div>
+          <iframe id="bookToolFrame" title="Costruisci l'indice senza AI"
+            style="width:100%;height:520px;border:1.5px solid var(--gray-2);border-radius:10px;background:white"></iframe>
         </div>
 
         <!-- Progress -->

@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Segna l'indice</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="prototipo_righe/estrai_righe.js?v=14"></script>
+<style>
+  :root { --bg:#f6f6f4; --card:#fff; --line:#ddd; --txt:#222; --mut:#666; --cap:#e6efff; --capb:#2b5cb8; --sez:#fff; --warn:#b45309; --warnbg:#fff4e0; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.45 system-ui, Segoe UI, sans-serif; margin: 0; padding: 18px 20px 60px; background: var(--bg); color: var(--txt); }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  .nota { color: var(--mut); margin: 0 0 14px; max-width: 900px; }
+  .passi { margin: 0 0 14px; padding-left: 20px; max-width: 900px; }
+  .passi li { margin: 2px 0; }
+  button, label.btn, select, input { font: inherit; }
+  button, label.btn { background: #fff; border: 1px solid #b5b5b5; border-radius: 6px; padding: 7px 13px; cursor: pointer; }
+  button.primario { background: var(--capb); color: #fff; border-color: var(--capb); }
+  button.usa-app { background: #00A651; color: #fff; border-color: #00A651; }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type=file] { display: none; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+  .card h2 { font-size: 14px; margin: 0 0 8px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 12px; }
+  .meta label { display: flex; flex-direction: column; font-size: 12px; color: var(--mut); gap: 2px; }
+  .meta input, .meta select { padding: 5px 7px; border: 1px solid #c6c6c6; border-radius: 5px; font-size: 14px; color: var(--txt); }
+  .gruppi { display: grid; gap: 4px 18px; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+  .gr { display: flex; align-items: center; gap: 8px; }
+  .gr .et { flex: 1; }
+  .gr .n { color: var(--mut); min-width: 34px; text-align: right; }
+  .gr select { padding: 3px 5px; }
+  .riep { font-weight: 600; }
+  .avvisi { margin-top: 6px; max-height: 190px; overflow: auto; }
+  .avvisi a { display: block; color: var(--warn); text-decoration: none; padding: 1px 0; }
+  .avvisi a:hover { text-decoration: underline; }
+  .barra { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; background: var(--card); border: 1px solid var(--line); }
+  th { position: sticky; top: 0; background: #efefec; text-align: left; font-size: 12px; padding: 6px 6px; border-bottom: 1px solid var(--line); z-index: 2; }
+  td { padding: 2px 4px; border-bottom: 1px solid #eee; vertical-align: middle; }
+  td input { width: 100%; border: 1px solid transparent; background: transparent; padding: 4px 5px; border-radius: 4px; }
+  td input:hover, td input:focus { border-color: #b5b5b5; background: #fff; }
+  td.c-num { width: 110px; } td.c-pag { width: 70px; } td.c-az { width: 118px; } td.c-pdf { width: 46px; text-align: center; } td.c-rg { width: 108px; color: var(--mut); font-size: 12px; }
+  td select { width: 100%; padding: 3px 4px; }
+  tr.az-cap td { background: var(--cap); font-weight: 600; }
+  tr.az-cap td.c-az select { font-weight: 600; color: var(--capb); }
+  tr.az-skip td { color: #888; }
+  tr.avviso td { box-shadow: inset 3px 0 0 var(--warn); }
+  tr.avviso td.c-pag input, tr.avviso td.c-num input { background: var(--warnbg); }
+  .cf-manca { color: var(--mut); }
+  #tabConfRighe .cf-usa { font-size: 12px; padding: 3px 8px; white-space: nowrap; }
+  #tabConfRighe td { vertical-align: top; }
+  .riga-piu { width: 24px; height: 24px; padding: 0; line-height: 1; border-radius: 50%; color: var(--mut); }
+  .riga-piu:hover { color: var(--capb); border-color: var(--capb); }
+  tr.riga-nuova td { background: #fff6cc !important; }
+  tr.evid td { outline: 2px solid var(--warn); outline-offset: -2px; }
+  a { color: var(--capb); }
+  #stato { color: var(--mut); }
+  .ripr { color: var(--warn); }
+  .proposto { background: #fff6cc !important; }
+  .conf2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+  .cfpre { max-height: 240px; overflow: auto; background: #fafaf8; border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 12px/1.45 ui-monospace, Consolas, monospace; margin: 4px 0 0; white-space: pre-wrap; }
+  @media (max-width: 800px) { .conf2 { grid-template-columns: 1fr; } }
+  @media (max-width: 800px) { td.c-rg { display: none; } }
+</style>
+</head>
+<body>
+<h1>Segna l'indice</h1>
+<p class="nota">Carica il PDF dell'indice di un libro. Il programma ne ricostruisce le righe e <b>propone</b> quali sono capitoli e quali sezioni;
+tu correggi dove serve e scarichi il JSON da importare nell'app. Non usa l'intelligenza artificiale e non serve nessuna chiave: il risultato dipende solo da ciò che segni tu. Il file resta sul tuo computer.</p>
+<ol class="passi">
+  <li><b>Scegli il PDF</b> e compila i dati del libro.</li>
+  <li><b>Controlla la lista</b>: ogni riga ha «Capitolo», «Sezione» oppure «Ignora». In alto puoi cambiare in un colpo solo un intero gruppo di righe simili.</li>
+  <li><b>Guarda gli avvisi</b> (numeri saltati, pagine che tornano indietro) e correggi quelle righe.</li>
+  <li><b>Scarica il JSON</b> e importalo nell'app con «Importa indice».</li>
+</ol>
+
+<div class="barra">
+  <label class="btn">Scegli il PDF dell'indice <input type="file" id="pdf" accept="application/pdf"></label>
+  <span id="stato"></span>
+</div>
+
+<div id="scheda" hidden>
+  <div class="card">
+    <h2>Dati del libro <span style="font-weight:400;color:var(--mut)">— i campi in giallo sono proposti dal nome del file e dall'ultimo libro: controllali</span></h2>
+    <datalist id="dl_pub"></datalist><datalist id="dl_sub"></datalist>
+    <div class="meta">
+      <label>ID univoco<input id="m_id"></label>
+      <label>Titolo<input id="m_title"></label>
+      <label>Autore<input id="m_author"></label>
+      <label>Editore<input id="m_publisher" list="dl_pub" autocomplete="off"></label>
+      <label>Materia<input id="m_subject" list="dl_sub" autocomplete="off"></label>
+      <label>Edizione<input id="m_edition"></label>
+      <label>Anno<input id="m_year" inputmode="numeric"></label>
+      <label>Volume<input id="m_volume" inputmode="numeric"></label>
+      <label>Tipo<select id="m_type"><option value="Zanichelli">Zanichelli</option><option value="concorrente" selected>Concorrente</option><option value="altro">Altro</option></select></label>
+    </div>
+  </div>
+
+  <details class="card" id="cardSchema" open>
+    <summary style="cursor:pointer;font-weight:600">Schema dell'indice — leggi come è fatto un capitolo e applicalo a tutto il libro</summary>
+    <div class="barra" style="margin:8px 0">
+      <label><input type="radio" name="modo" value="auto" checked> Automatico (la proposta di sempre)</label>
+      <label><input type="radio" name="modo" value="guidato"> Guidato dallo schema</label>
+    </div>
+    <div id="schemaGuidato" hidden>
+      <p class="nota" style="margin:0 0 8px">Ogni riga dell'indice ha uno <b>stile</b>: tipo di carattere, dimensione, rientro e forma del numero. Qui sotto trovi gli stili di un
+      capitolo di esempio: di' <b>una volta</b> cosa è ciascuno (capitolo, sezione, sottosezione, scheda o da ignorare) e lo schema viene applicato a tutto il libro.
+      La scelta di partenza è quella della proposta automatica.</p>
+      <div class="barra" style="margin:6px 0"><label>Capitolo di esempio <select id="capCamp"></select></label></div>
+      <table id="tabStili"><thead><tr><th>Esempio</th><th>Stile</th><th>Righe (cap. / libro)</th><th>Cosa è</th></tr></thead><tbody></tbody></table>
+      <div style="margin-top:8px;font-weight:600">Struttura del capitolo di esempio con lo schema scelto</div>
+      <pre id="anteprima" style="max-height:260px;overflow:auto;background:#fafaf8;border:1px solid var(--line);border-radius:6px;padding:8px;font:12.5px/1.45 ui-monospace,Consolas,monospace;margin:4px 0 0"></pre>
+    </div>
+  </details>
+
+  <details class="card" id="cardConfronto" open>
+    <summary id="confrontoRiga" style="cursor:pointer;font-weight:600">Confronto tra le due modalità</summary>
+    <p class="nota" style="margin:8px 0">Le due modalità si conservano separatamente: puoi passare dall'una all'altra senza perdere le correzioni fatte in ciascuna.
+    Il JSON che esporti (o copi) viene dalla modalità <b>in uso</b>. Sotto, riga per riga, dove le due sono D'ACCORDO non compare nulla: vedi solo le
+    differenze, e per ognuna puoi portare nella modalità in uso la versione dell'altra con un clic.</p>
+    <div class="barra" style="margin:6px 0">
+      <span>In uso: <b id="cfInUso"></b></span>
+      <button id="cfAuto">Usa l'automatica</button>
+      <button id="cfGuid">Usa la guidata</button>
+    </div>
+    <table id="tabConf"><thead><tr><th></th><th>Automatica</th><th>Guidata</th></tr></thead><tbody></tbody></table>
+    <div class="barra" style="margin:10px 0 6px">
+      <button id="cfBulk"></button>
+      <span id="cfDiffInfo" style="color:var(--mut)"></span>
+    </div>
+    <table id="tabConfRighe"><thead><tr><th title="Pagina del PDF caricato: clic per aprirla">PDF</th><th>Automatica</th><th>Guidata</th><th></th></tr></thead><tbody></tbody></table>
+  </details>
+
+  <div class="card" id="cardGruppi">
+    <h2>Gruppi di righe simili <span style="font-weight:400;color:var(--mut)">— cambia il comportamento di tutto il gruppo</span></h2>
+    <div class="gruppi" id="gruppi"></div>
+  </div>
+
+  <div class="card">
+    <div class="riep" id="riep"></div>
+    <div class="avvisi" id="avvisi"></div>
+  </div>
+
+  <div class="barra">
+    <button class="primario" id="copia">Copia il JSON</button>
+    <button id="scarica">Scarica il JSON</button>
+    <button class="usa-app" id="usaApp" style="display:none">Usa questo indice nell'app</button>
+    <label><input type="checkbox" id="mostraIgn"> Mostra anche le righe ignorate</label>
+    <button id="aggiungiCima">+ Aggiungi una riga in cima</button>
+    <button id="da_capo">Ricomincia da capo</button>
+    <span id="esito" class="ripr"></span>
+    <span id="ripr" class="ripr"></span>
+  </div>
+  <p class="nota" style="margin:2px 0 8px">Manca un capitolo o una sezione che né l'automatica né la guidata trovano? Il «+» in fondo a una riga ne aggiunge una
+  vuota subito dopo: scegli Capitolo o Sezione e scrivi numero e titolo, come per ogni altra riga. Viene aggiunta a entrambe le modalità.</p>
+
+  <details class="card" id="cardTesto">
+    <summary style="cursor:pointer;font-weight:600">Indice testuale — per i libri dove capitoli e sezioni non si riconoscono bene</summary>
+    <p class="nota" style="margin:8px 0">Atlante legge dell'indice solo i titoli (mai le pagine) e accetta anche un semplice testo. Qui l'indice è una voce per riga,
+    nell'ordine di lettura, con il rientro che indica il livello, senza pagine, puntini e rimandi online. Puoi correggere il testo direttamente qui sotto
+    (cancellare righe di rumore, sistemare un titolo). Il JSON che ne esce contiene il testo nel campo <code>chapters_summary</code>, che Atlante legge al posto dei capitoli.</p>
+    <div class="barra" style="margin:6px 0">
+      <label><input type="checkbox" id="txtPallini"> Includi anche le sottovoci con pallino</label>
+      <button id="txtRigenera">Rigenera il testo</button>
+      <span id="txtInfo" style="color:var(--mut)"></span>
+    </div>
+    <textarea id="txtArea" rows="16" style="width:100%;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px;border:1px solid #c6c6c6;border-radius:6px" spellcheck="false"></textarea>
+    <div class="barra" style="margin:8px 0 0">
+      <button class="primario" id="txtCopia">Copia il JSON testuale</button>
+      <button id="txtScarica">Scarica il JSON testuale</button>
+      <button class="usa-app" id="txtUsaApp" style="display:none">Usa questo indice nell'app</button>
+    </div>
+  </details>
+
+  <table>
+    <thead><tr><th>Azione</th><th>Numero</th><th>Titolo</th><th>Pag.</th><th title="Pagina del PDF caricato: clic per aprirla">PDF</th><th>Da</th><th></th></tr></thead>
+    <tbody id="tab"></tbody>
+  </table>
+</div>
+
+<script>
+var FILE = null, ROWS = [], PDFURL = null, CHIAVE = '', EL = [];
+// Cambia quando cambia la proposta automatica: il lavoro salvato con una versione diversa non viene ripreso.
+var VER_SALVATAGGIO = 15, RIP_VECCHIO = false;
+var RG = {
+  qr: 'rimando online', cap: 'CAPITOLO N', parte: 'parte / unità', num1: 'numero solo', numNX: 'numerata N.X',
+  numAltro: 'altra numerata', pallino: 'pallino', riquadro: 'riquadro', titoli: 'titolo', titoliMai: 'TITOLO', ricorrente: 'ricorrente', senzapag: 'senza pagina', flusso: 'paragrafo',
+  capTip: 'titolo capitolo', parTip: 'paragrafo n.', subTip: 'sottoparagrafo', importata: 'unita dall\'altra modalità', manuale: 'aggiunta a mano'
+};
+var ETICHETTE = {
+  cap: 'Righe «CAPITOLO N»', parte: 'Righe «PARTE / UNITÀ / SEZIONE»', num1: 'Numero da solo (1, 2, 3…)',
+  numNX: 'Sezioni numerate (3.1, 3.2…)', numAltro: 'Altre numerate (i.1, 3.1.2…)', pallino: 'Sottovoci con pallino',
+  riquadro: 'Riquadri (Riquadro 5.2, Salute e medicina…)', titoli: 'Titoli senza numero, in minuscolo (con pagina)',
+  titoliMai: 'Titoli senza numero, in MAIUSCOLO (con pagina)', ricorrente: 'Etichette che tornano in ogni capitolo (Concetti chiave…)',
+  senzapag: 'Righe senza numero né pagina', flusso: 'Voci di paragrafo', qr: 'Rimandi online (QR…)',
+  capTip: 'Titoli di capitolo (carattere più grande, senza numero)', parTip: 'Paragrafi numerati (1., 2., 3.…)',
+  subTip: 'Sottoparagrafi (numeri rientrati, che ripartono da 1)', importata: 'Righe unite dall\'altra modalità (confronto)',
+  manuale: 'Righe aggiunte a mano'
+};
+var ORDINE = ['capTip', 'parTip', 'subTip', 'cap', 'parte', 'num1', 'numNX', 'numAltro', 'riquadro', 'ricorrente', 'titoliMai', 'titoli', 'pallino', 'flusso', 'senzapag', 'qr', 'importata'];
+
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function pagInt(p) { return /^\d{1,4}$/.test(String(p || '').trim()) ? parseInt(p, 10) : null; }
+
+// ── 1. Proposta iniziale ─────────────────────────────────────────────────
+// Gerarchia dalla TIPOGRAFIA (dimensione del carattere e rientro), per i libri dove i numeri da soli ("1.", "2."…)
+// non sono capitoli ma paragrafi che ripartono da 1 in ogni capitolo (Mencuccini, Fusco…): i capitoli sono i titoli
+// senza numero in carattere più grande, i paragrafi i numeri da soli senza rientro, i sottoparagrafi quelli rientrati.
+// Restituisce null se il libro non ha questo schema (allora valgono le regole di sempre).
+var TIPO_ATTIVA = true;
+var RE_SCHEDA = /^(SCHEDA|RIQUADRO|BOX|FOCUS|APPROFONDIMENTO)\s+(\d+\.\d+)\b/i;
+// Intestazione di servizio: la riga INIZIA con una di queste parole. Un tentativo di essere più precisi (richiedere
+// che la riga finisca lì, o con un seguito amministrativo tipico) è stato provato e scartato: filtrava bene
+// "Problemi d'urto" (un capitolo vero di Mencuccini, non la lista degli esercizi), ma smetteva di riconoscere
+// centinaia di intestazioni vere come "Problemi generali", "Quesiti di riflessione critica", "Problemi di
+// riepilogo" — troppi seguiti amministrativi diversi da un libro all'altro per elencarli tutti. Il filtro resta
+// largo qui; il caso "Problemi d'urto" si risolve dove serve davvero, dentro tipografia() (vedi sotto).
+var RE_SERVIZIO = /^([^\wÀ-ÿ]|(riepilogo|riassunto|esercizi|problemi|domande|sintesi|quesiti|verifica|indice|prefazione|bibliografia)(?![A-Za-zÀ-ÿ]))/i;
+function tipografia(voci, nCap) {
+  if (!TIPO_ATTIVA) return null;
+  var marc = nCap >= 3;
+  var num1 = [];
+  voci.forEach(function (v, i) { if (v.tipo === 'numerata' && /^\d+$/.test(v.numero) && v.h != null) num1.push(i); });
+  if (num1.length < 8) return null;
+  var ripartenze = 0, prec = null;
+  num1.forEach(function (i) { var n = +voci[i].numero; if (prec !== null && n <= prec) ripartenze++; prec = n; });
+  if (ripartenze < 3) return null;
+  if (marc) {                       // capitoli già marcati ("CAPITOLO N"): qui si trattano solo i paragrafi numerati
+    var lm = [];
+    voci.forEach(function (v, i) { if (v.tipo === 'capitolo' && /^(CAPITOLO|CAP\.|CHAPTER)/i.test(v.numero || '')) lm.push(i); });
+    var okm = 0, totm = 0;
+    lm.forEach(function (ci, k) {
+      var fine = k + 1 < lm.length ? lm[k + 1] : voci.length, primo = null;
+      for (var j = ci + 1; j < fine; j++) { if (voci[j].tipo === 'numerata' && /^\d+$/.test(voci[j].numero)) { primo = +voci[j].numero; break; } }
+      if (primo !== null) { totm++; if (primo === 1) okm++; }
+    });
+    if (totm < 3 || okm < 0.6 * totm) return null;
+    var minXm = {};
+    voci.forEach(function (v) { var k = v.pdfPagina + v.col; minXm[k] = Math.min(minXm[k] === undefined ? 1e9 : minXm[k], v.x0); });
+    return { marc: true, capi: {}, rientrato: function (i) { return voci[i].x0 - minXm[voci[i].pdfPagina + voci[i].col] >= 10; } };
+  }
+  var cnt = {};
+  num1.forEach(function (i) { var h = Math.round(voci[i].h * 2) / 2; cnt[h] = (cnt[h] || 0) + 1; });
+  var paraH = +Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; })[0];
+  var cand = {};
+  voci.forEach(function (v, i) {
+    if (v.tipo === 'numerata' || v.tipo === 'qr' || v.tipo === 'pallino' || v.h == null) return;
+    var t = (v.titolo || '').trim();
+    if (t.length < 4 || RE_SERVIZIO.test(t) || v.h < paraH + 1.5) return;
+    var h = Math.round(v.h * 2) / 2; (cand[h] = cand[h] || []).push(i);
+  });
+  var best = Object.keys(cand).sort(function (a, b) { return cand[b].length - cand[a].length; })[0];
+  if (best === undefined || cand[best].length < 3) return null;
+  // Segno distintivo: dopo ogni titolo di capitolo i paragrafi numerati RICOMINCIANO da 1. Se non succede nella
+  // maggior parte dei casi (es. numeri che proseguono da una parte all'altra), non è questo schema.
+  var lista = cand[best].slice().sort(function (a, b) { return a - b; }), ok = 0, tot = 0;
+  lista.forEach(function (ci, k) {
+    var fine = k + 1 < lista.length ? lista[k + 1] : voci.length, primo = null;
+    for (var j = ci + 1; j < fine; j++) { if (voci[j].tipo === 'numerata' && /^\d+$/.test(voci[j].numero)) { primo = +voci[j].numero; break; } }
+    if (primo !== null) { tot++; if (primo === 1) ok++; }
+  });
+  if (tot < 3 || ok < 0.6 * tot) return null;
+  var capi = {}; cand[best].forEach(function (i) { capi[i] = 1; });
+  // Salvataggio mirato: RE_SERVIZIO ha escluso dal conteggio sopra anche i (rari) titoli di capitolo che iniziano
+  // per caso come un'intestazione di servizio ("Problemi d'urto" in Mencuccini) — giusto farlo, altrimenti righe
+  // come "Problemi generali", ripetute in ogni capitolo di altri libri, avrebbero potuto vincere loro il conteggio
+  // e far scegliere il loro stile invece di quello vero dei capitoli. Qui si recuperano, uno per uno, con la STESSA
+  // prova strutturale usata sopra per tutto il cluster: se il paragrafo numerato subito dopo riparte da 1 — come
+  // dopo ogni vero titolo di capitolo — lo è anche lui, qualunque parola lo apra.
+  voci.forEach(function (v, i) {
+    if (capi[i] || v.tipo === 'numerata' || v.tipo === 'qr' || v.tipo === 'pallino' || v.h == null) return;
+    var t = (v.titolo || '').trim();
+    if (t.length < 4 || +best !== Math.round(v.h * 2) / 2 || !RE_SERVIZIO.test(t)) return;
+    var fine = voci.length;
+    for (var k = 0; k < lista.length; k++) { if (lista[k] > i) { fine = lista[k]; break; } }
+    var primo = null, posPrimo = -1;
+    for (var j = i + 1; j < fine; j++) { if (voci[j].tipo === 'numerata' && /^\d+$/.test(voci[j].numero)) { primo = +voci[j].numero; posPrimo = j; break; } }
+    if (primo !== 1) return;
+    // Se c'è un'ALTRA riga dello stesso stile più vicina al riavvio, è quella il vero titolo, non questa: capita
+    // quando la coda del capitolo precedente ("Riepilogo del Capitolo 7") condivide lo stile dei titoli e precede
+    // di poco il titolo vero del capitolo dopo ("Problemi d'urto") — senza questo controllo verrebbero salvate
+    // entrambe, creando un capitolo vuoto in più.
+    for (var m2 = i + 1; m2 < posPrimo; m2++) { if (voci[m2].h != null && +best === Math.round(voci[m2].h * 2) / 2) return; }
+    capi[i] = 1;
+  });
+  var minX = {};
+  voci.forEach(function (v) { var k = v.pdfPagina + v.col; minX[k] = Math.min(minX[k] === undefined ? 1e9 : minX[k], v.x0); });
+  return { capi: capi, rientrato: function (i) { return voci[i].x0 - minX[voci[i].pdfPagina + voci[i].col] >= 10; } };
+}
+
+function proponi(voci) {
+  var nCap = voci.filter(function (v) { return v.tipo === 'capitolo' && /^(CAPITOLO|CAP\.|CHAPTER)/i.test(v.numero || ''); }).length;
+  var nSec = voci.filter(function (v) { return v.tipo === 'numerata' && /^\d+\.\d+$/.test(v.numero); }).length;
+  var numerato = nSec >= Math.max(5, 0.3 * nCap);       // libro con sezioni "N.X"
+  // etichette fisse che tornano in molti capitoli ("CONCETTI CHIAVE", "RISORSE DIGITALI"…)
+  var reMai = /^([A-ZÀ-Ý][A-ZÀ-Ý' ]{3,}[A-ZÀ-Ý])(?=\s|$)/, cnt = {};
+  voci.forEach(function (v) { if (v.tipo === 'testo') { var m = v.titolo.match(reMai); if (m) cnt[m[1]] = (cnt[m[1]] || 0) + 1; } });
+  var ricorrenti = {};
+  Object.keys(cnt).forEach(function (k) { if (cnt[k] >= Math.max(3, Math.round(0.3 * Math.max(nCap, 1)))) ricorrenti[k] = 1; });
+  // libri senza numeri: le sezioni sono i titoli in MAIUSCOLO (Alberts Essenziale) o quelli normali (Alberts)?
+  var nMai = 0, nNor = 0;
+  voci.forEach(function (v) {
+    if (v.tipo !== 'testo' || v.pagina === null) return;
+    var m = v.titolo.match(reMai); if (m && ricorrenti[m[1]]) return;
+    if (v.titolo === v.titolo.toUpperCase() && /[A-ZÀ-Ý]{3}/.test(v.titolo)) nMai++; else nNor++;
+  });
+  var maiSez = !numerato && nCap > 0 && nMai >= 1.5 * nCap && nMai * 3 < nNor;
+  var tip = tipografia(voci, nCap), capN = 0, par = null, sq = {}, sched = null;
+  return voci.map(function (v, i) {
+    // (il rimando QR attaccato in fondo al titolo, es. "Genomi virali QR19-1", non fa parte del titolo)
+    var r = { i: i, g: 'titoli', az: 'skip', num: '', tit: v.titolo.replace(/\s+QR ?\d{1,2}-\d+$/, ''), pag: v.pagina === null ? '' : String(v.pagina), pdf: v.pdfPagina, auto: '', eff: '', capDi: null, avv: [] };
+    var m;
+    if (v.tipo === 'qr') { r.g = 'qr'; }
+    else if (v.tipo === 'capitolo') {
+      m = String(v.numero || '').match(/^(CAPITOLO|CAP\.|CHAPTER)(?: (\d+))?$/i);
+      if (m) { r.g = 'cap'; r.az = 'cap'; r.num = m[2] || ''; }
+      else { r.g = 'parte'; r.tit = (v.numero + ' ' + v.titolo).trim(); }
+    }
+    else if (v.tipo === 'numerata') {
+      r.num = v.numero;
+      if (/^\d+$/.test(v.numero)) { r.g = 'num1'; r.az = (nCap < 3 && v.titolo.trim().length >= 3) ? 'cap' : 'skip'; }
+      else if (/^\d+\.\d+$/.test(v.numero)) { r.g = 'numNX'; r.az = 'sez'; }
+      else { r.g = 'numAltro'; }
+    }
+    else if (v.tipo === 'pallino') { r.g = 'pallino'; }
+    else {                                             // 'testo' o 'flusso'
+      var mb = v.titolo.match(/^(riquadro|salute e medicina|focus|scheda di approfondimento)\s+(\d+\.\d+)\s+(.+)$/i);
+      if (mb) { r.g = 'riquadro'; r.az = 'sez'; r.num = mb[1].toUpperCase() + ' ' + mb[2]; r.tit = mb[3]; }
+      else {
+        var mr = v.tipo === 'testo' ? v.titolo.match(reMai) : null;
+        var maiuscolo = v.titolo === v.titolo.toUpperCase() && /[A-ZÀ-Ý]{3}/.test(v.titolo);
+        if (v.tipo === 'flusso') r.g = 'flusso';
+        else if (v.pagina === null) r.g = 'senzapag';
+        else if (mr && ricorrenti[mr[1]]) { r.g = 'ricorrente'; r.num = mr[1]; r.tit = v.titolo.slice(mr[1].length).trim(); }
+        else r.g = maiuscolo ? 'titoliMai' : 'titoli';
+        if (!numerato && v.tipo === 'testo' && v.pagina !== null) {
+          if (r.g === 'titoli' && !maiSez) r.az = 'sez';
+          if (r.g === 'titoliMai' && maiSez) r.az = 'sez';
+        }
+      }
+    }
+    if (tip && v.tipo !== 'qr') {                      // gerarchia dalla tipografia (vedi tipografia())
+      var titV = (v.titolo || '').trim();
+      // un numero senza titolo (numero di pagina in una colonna a parte) o la scritta decorativa "capitolo1" non è struttura
+      var rumore = v.tipo === 'numerata' && (titV.length < 2 || /\bcapitolo\s?\d+\s*$/i.test(titV));
+      if (rumore) { r.az = 'skip'; }
+      else if (tip.capi[i] || (tip.marc && r.g === 'cap')) {
+        if (tip.marc) capN = /^\d+$/.test(r.num) ? +r.num : capN + 1;      // capitoli già marcati: restano come sono
+        else { r.g = 'capTip'; r.az = 'cap'; r.num = ''; capN++; }
+        par = null; sched = null;
+      }
+      else if (v.tipo === 'testo' && v.pagina === null && RE_SCHEDA.test(titV)) {   // etichetta di una scheda/riquadro (senza pagina)
+        var ms = titV.match(RE_SCHEDA);
+        sched = ms[1].toUpperCase() + ' ' + ms[2]; r.az = 'skip'; r.g = 'riquadro';
+      }
+      else if (v.tipo === 'numerata' && /^\d+$/.test(v.numero)) {
+        var sub = tip.rientrato(i);
+        r.g = sub ? 'subTip' : 'parTip';
+        if (capN === 0) r.az = 'skip';
+        else if (sub) { r.az = 'sez'; r.num = capN + '.' + (par === null ? 0 : par) + '.' + v.numero; }
+        else { r.az = 'sez'; par = v.numero; r.num = capN + '.' + v.numero; sched = null; }
+      }
+      else if (v.tipo === 'numerata' && /^\d+\.\d+$/.test(v.numero)) {        // sottosezione "N.X" (N = paragrafo)
+        r.g = 'subTip';
+        if (capN === 0) r.az = 'skip'; else { r.az = 'sez'; r.num = capN + '.' + v.numero; }
+      }
+      else if (r.g === 'riquadro') { if (capN === 0) r.az = 'skip'; }        // riquadro con titolo e numero sulla stessa riga: resta com'è
+      else if (RE_SERVIZIO.test((v.titolo || '').trim())) r.az = 'skip';     // Riepilogo, Esercizi, Bibliografia…
+      else if (capN === 0) r.az = 'skip';
+      else if (r.az === 'sez' && sched !== null) {                          // titolo della scheda annunciata dall'etichetta precedente
+        r.g = 'riquadro'; r.num = sched; sched = null;
+        r.tit = r.tit.replace(/^(?:[A-ZÀ-Ý]{2,}\s+)+(?=[A-ZÀ-Ý]?[a-zà-ÿ]|[A-ZÀ-Ý]\s+[a-zà-ÿ])/, '');   // "MALATTIA Il sistema…", "MALATTIA I veleni…": resto dell'etichetta a capo
+      }
+      else if (r.az === 'sez') {                                            // voce senza numero già proposta come sezione
+        var kk = capN + '.' + (par === null ? 0 : par);
+        var ml = r.tit.match(/^([A-Z])\s+(\S.*)$/);                         // voce con lettera ("A Le molecole…") → 1.1.A
+        if (ml) { r.num = kk + '.' + ml[1]; r.tit = ml[2]; }
+        else { sq[kk] = (sq[kk] || 0) + 1; r.num = kk + '.' + sq[kk]; }
+      }
+    }
+    return r;
+  });
+}
+
+// ── 2. Numeri effettivi, avvisi ──────────────────────────────────────────
+// ── 1b. Modalità guidata dallo schema ────────────────────────────────────
+// Ogni riga ha uno STILE (tipo di carattere, dimensione, rientro, forma del numero). Si mostra un capitolo di
+// esempio con i suoi stili, l'utente dice una volta cosa è ciascuno, e lo schema si applica a tutto il libro.
+// La scelta di partenza viene dalla proposta automatica (il livello più frequente di ogni stile).
+var SOGLIA_NONSKIP = 0.15;
+var MODO = 'auto', MAPPA = {}, STILI = [], STILE_IDX = {}, STILE_DI = [], CAPS_AUTO = [], CAP_CAMPIONE = 0, ROWS_AUTO = [];
+var LIVELLI = { cap: 'Capitolo', sez: 'Sezione', sub: 'Sottosezione', scheda: 'Scheda / riquadro', skip: 'Ignora' };
+// Stesso criterio di RE_SERVIZIO (vedi sopra), senza «indice»/«prefazione»: qui si guardano solo righe dentro
+// un capitolo già iniziato, dove front-matter come «Indice generale» non dovrebbe più comparire. Non si applica
+// mai a uno stile che l'utente ha scelto come Capitolo (vedi la chiamata più sotto): se "Problemi d'urto" ha lo
+// stesso stile degli altri titoli di capitolo, la modalità guidata lo classifica capitolo indipendentemente da
+// come inizia il testo, e non ha bisogno del salvataggio mirato che serve invece alla modalità automatica.
+var RE_SERVIZIO_PAROLE = /^(?:[^\wÀ-ÿ]\s*)?(riepilogo|riassunto|esercizi|problemi|domande|sintesi|quesiti|verifica|bibliografia)(?![A-Za-zÀ-ÿ])/i;
+var RE_SCHEDA_G =/^(riquadro|salute e medicina|focus|scheda di approfondimento|scheda|box|approfondimento)\s+(\d+\.\d+)\b\s*(.*)$/i;
+var RE_RESTO_ETICHETTA = /^(?:[A-ZÀ-Ý]{2,}\s+)+(?=[A-ZÀ-Ý]?[a-zà-ÿ]|[A-ZÀ-Ý]\s+[a-zà-ÿ])/;
+
+function chiaveStile(v, minX) {
+  if (v.tipo === 'qr') return 'qr';
+  var rel = v.x0 - minX[v.pdfPagina + v.col];
+  var ind = rel < 10 ? 0 : rel < 28 ? 1 : 2, forma, t = (v.titolo || '').trim();
+  if (v.tipo === 'capitolo') forma = /^(CAPITOLO|CAP\.|CHAPTER)/i.test(v.numero || '') ? 'CAPITOLO N' : 'PARTE';
+  else if (v.tipo === 'numerata') forma = /^\d+$/.test(v.numero) ? 'N.' : /^\d+\.\d+$/.test(v.numero) ? 'N.X' : 'N.X.Y';
+  else if (v.tipo === 'pallino') forma = 'pallino';
+  else forma = RE_SCHEDA_G.test(t) ? 'SCHEDA' : /^[A-Z]\s+\S/.test(t) ? 'lettera' : 'testo';
+  return [v.font || '', Math.round((v.h || 0) * 2) / 2, ind, forma].join('|');
+}
+function livelloAuto(r) {
+  if (!r) return 'skip';
+  if (r.az === 'cap') return 'cap';
+  if (r.g === 'riquadro') return 'scheda';
+  if (r.az === 'sez') return (r.g === 'subTip' || (r.num && (String(r.num).match(/\./g) || []).length >= 2)) ? 'sub' : 'sez';
+  return 'skip';
+}
+function costruisciStili() {
+  var minX = {}, fonts = {};
+  VOCI.forEach(function (v) { var k = v.pdfPagina + v.col; minX[k] = Math.min(minX[k] === undefined ? 1e9 : minX[k], v.x0); });
+  STILI = []; STILE_IDX = {}; STILE_DI = [];
+  VOCI.forEach(function (v, i) {
+    var k = chiaveStile(v, minX); STILE_DI[i] = k;
+    if (!STILE_IDX[k]) { STILE_IDX[k] = { n: STILI.length, k: k, conta: 0, liv: {} }; STILI.push(STILE_IDX[k]); }
+    var s = STILE_IDX[k]; s.conta++;
+    var l = livelloAuto(ROWS_AUTO[i]); s.liv[l] = (s.liv[l] || 0) + 1;
+    var f = k.split('|')[0]; if (!(f in fonts)) fonts[f] = Object.keys(fonts).length + 1;
+    s.font = fonts[f];
+  });
+  MAPPA = {};
+  STILI.forEach(function (s) {
+    // Livello di partenza dello stile: se una quota abbastanza grande delle sue righe era già struttura (non "ignora")
+    // nella proposta automatica, lo stile parte come struttura (il livello più frequente tra quelli non "ignora"):
+    // meglio partire troppo inclusivi (l'utente toglie) che buttare sezioni vere.
+    var best = 'skip', bn = -1, tot = 0, nonSkip = 0;
+    Object.keys(s.liv).forEach(function (l) { tot += s.liv[l]; if (l !== 'skip') nonSkip += s.liv[l]; });
+    if (tot && nonSkip / tot >= SOGLIA_NONSKIP) {
+      Object.keys(s.liv).forEach(function (l) { if (l !== 'skip' && s.liv[l] > bn) { bn = s.liv[l]; best = l; } });
+    }
+    if (s.k.split('|')[3] === 'SCHEDA' && best === 'skip') best = 'scheda';   // schede/riquadri: la proposta automatica può perderli
+    MAPPA[s.k] = best; RG['S' + s.n] = 'stile ' + (s.n + 1);
+  });
+  CAPS_AUTO = []; ROWS_AUTO.forEach(function (r, i) { if (r.az === 'cap') CAPS_AUTO.push(i); });
+  CAP_CAMPIONE = CAPS_AUTO.length ? Math.floor((CAPS_AUTO.length - 1) / 2) : 0;          // un capitolo centrale
+}
+function proponiGuidato(voci, mappa) {
+  var capN = 0, haCap = false, sezNum = null, sq = {}, sched = null;
+  return voci.map(function (v, i) {
+    var k = STILE_DI[i], idx = STILE_IDX[k] ? STILE_IDX[k].n : 0;
+    var r = { i: i, g: 'S' + idx, az: 'skip', num: '', tit: (v.titolo || '').replace(/\s+QR ?\d{1,2}-\d+$/, ''), pag: v.pagina === null ? '' : String(v.pagina), pdf: v.pdfPagina, auto: '', eff: '', capDi: null, avv: [] };
+    if (v.tipo === 'qr') return r;
+    var lv = mappa[k] || 'skip', titV = r.tit.trim();
+    // Riepilogo, Esercizi, Bibliografia… — MAI su una riga che ha già un numero stampato dal libro ("26.1"): un
+    // titolo vero può iniziare con una di queste parole ("Sintesi dell'RNA dipendente dal DNA" in Lehninger, come
+    // "Problemi d'urto" in Mencuccini) e un'intestazione di servizio non ha mai un proprio numero di sezione —
+    // trovato dall'utente su Lehninger Principi (26.1 e 26.3 sparivano), stessa causa del bug di Mencuccini di ieri.
+    if (lv !== 'cap' && lv !== 'skip' && v.tipo !== 'numerata' && RE_SERVIZIO_PAROLE.test(titV)) return r;
+    var n1 = v.tipo === 'numerata' && /^\d+$/.test(v.numero), nx = v.tipo === 'numerata' && /^\d+\.\d+$/.test(v.numero);
+    if (v.tipo === 'numerata' && (titV.length < 2 || /\bcapitolo\s?\d+\s*$/i.test(titV))) return r;   // numero di pagina in colonna a parte, o scritta decorativa
+    if (lv === 'cap') {
+      var mm = v.tipo === 'capitolo' && /^(CAPITOLO|CAP\.|CHAPTER)/i.test(v.numero || '') ? String(v.numero).match(/(\d+)$/) : null;
+      if (mm) r.num = mm[1]; else if (n1) r.num = v.numero; else if (v.tipo === 'capitolo') r.tit = ((v.numero || '') + ' ' + r.tit).trim();
+      r.az = 'cap'; capN = /^\d+$/.test(r.num) ? +r.num : capN + 1; haCap = true; sezNum = null; sched = null;
+    } else if (!haCap) {
+      /* prima del primo capitolo: ignorata */
+    } else if (lv === 'scheda') {
+      var ms = titV.match(RE_SCHEDA_G);
+      // etichetta = codice + categoria tutta in maiuscolo (o niente): il titolo è la riga dopo; se c'è testo minuscolo è già il titolo
+      if (ms && (!(ms[3] || '').trim() || (v.pagina === null && ms[3] === ms[3].toUpperCase()))) sched = ms[1].toUpperCase() + ' ' + ms[2];
+      else if (ms) {                                                                                  // codice e titolo sulla stessa riga (con pagina)
+        r.az = 'sez'; r.num = ms[1].toUpperCase() + ' ' + ms[2]; r.tit = ms[3].replace(RE_RESTO_ETICHETTA, '').trim(); sched = null;
+      }
+      else if (sched !== null) { r.az = 'sez'; r.num = sched; r.tit = r.tit.replace(RE_RESTO_ETICHETTA, ''); sched = null; }
+    } else if (lv === 'sez' || lv === 'sub') {
+      if (sched !== null) { r.az = 'sez'; r.num = sched; r.tit = r.tit.replace(RE_RESTO_ETICHETTA, ''); sched = null; }
+      else {
+        var lett = r.tit.match(/^([A-Z])\s+(\S.*)$/);
+        if (lv === 'sez') {
+          if (n1) r.num = capN + '.' + v.numero;
+          else if (nx) r.num = (String(v.numero).split('.')[0] === String(capN)) ? v.numero : capN + '.' + v.numero;
+          else { sq['s' + capN] = (sq['s' + capN] || 0) + 1; r.num = capN + '.' + sq['s' + capN]; }
+          sezNum = r.num;
+        } else {
+          var parent = sezNum || (capN + '.0');
+          if (n1 || nx) r.num = parent + '.' + v.numero;
+          else if (lett) { r.num = parent + '.' + lett[1]; r.tit = lett[2]; }
+          else { sq[parent] = (sq[parent] || 0) + 1; r.num = parent + '.' + sq[parent]; }
+        }
+        r.az = 'sez';
+      }
+    }
+    return r;
+  });
+}
+function descrizioneStile(s) {
+  var p = s.k.split('|');
+  return 'carattere ' + s.font + ', ' + p[1] + ' pt, ' + (p[2] === '0' ? 'nessun rientro' : p[2] === '1' ? 'rientro medio' : 'rientro grande') + ', forma «' + p[3] + '»';
+}
+function limitiCampione() {
+  var da = CAPS_AUTO.length ? CAPS_AUTO[CAP_CAMPIONE] : 0;
+  var a = CAPS_AUTO.length && CAP_CAMPIONE + 1 < CAPS_AUTO.length ? CAPS_AUTO[CAP_CAMPIONE + 1] : Math.min(VOCI.length, da + 120);
+  return [da, a];
+}
+function disegnaSchema() {
+  var lim = limitiCampione(), da = lim[0], a = lim[1];
+  var opt = CAPS_AUTO.map(function (ri, n) { return '<option value="' + n + '"' + (n === CAP_CAMPIONE ? ' selected' : '') + '>' + esc(String(ROWS_AUTO[ri].num || (n + 1)) + ' — ' + ROWS_AUTO[ri].tit.slice(0, 50)) + '</option>'; }).join('');
+  $('capCamp').innerHTML = opt || '<option>(nessun capitolo riconosciuto: mostro le prime righe)</option>';
+  var visti = {}, ordine = [];
+  for (var i = da; i < a; i++) {
+    var k = STILE_DI[i]; if (k === 'qr') continue;
+    if (!visti[k]) { visti[k] = { n: 0, es: (VOCI[i].numero ? VOCI[i].numero + ' ' : '') + (VOCI[i].titolo || '').slice(0, 50) }; ordine.push(k); }
+    visti[k].n++;
+  }
+  $('tabStili').querySelector('tbody').innerHTML = ordine.map(function (k) {
+    var s = STILE_IDX[k], sel = Object.keys(LIVELLI).map(function (l) { return '<option value="' + l + '"' + (MAPPA[k] === l ? ' selected' : '') + '>' + LIVELLI[l] + '</option>'; }).join('');
+    return '<tr><td>' + esc(visti[k].es) + '</td><td style="color:var(--mut);font-size:12px">' + esc(descrizioneStile(s)) + '</td><td>' + visti[k].n + ' / ' + s.conta + '</td>'
+      + '<td><select data-k="' + esc(k) + '">' + sel + '</select></td></tr>';
+  }).join('');
+  aggiornaAnteprima();
+}
+function aggiornaAnteprima() {
+  var lim = limitiCampione(), righe = [];
+  for (var i = lim[0]; i < lim[1]; i++) {
+    var r = ROWS[i]; if (!r || r.az === 'skip') continue;
+    righe.push((r.az === 'cap' ? '' : (/\./g.test(String(r.num)) && (String(r.num).match(/\./g) || []).length >= 2 ? '      ' : '   ')) + (r.num ? r.num + '  ' : '') + r.tit);
+  }
+  $('anteprima').textContent = righe.join('\n') || '(niente da mostrare con questo schema)';
+}
+function sincronizzaModo() {
+  $('schemaGuidato').hidden = MODO !== 'guidato';
+  $('cardGruppi').hidden = MODO === 'guidato';
+  document.querySelectorAll('input[name=modo]').forEach(function (e) { e.checked = e.value === MODO; });
+  if (MODO === 'guidato') disegnaSchema(); else $('capCamp').innerHTML = '';
+}
+// Il lavoro di ciascuna modalità si conserva a parte: passando dall'una all'altra le correzioni non si perdono.
+// (Cambiare lo schema nella modalità guidata ricalcola la guidata: è il suo comando principale.)
+var STATO = { auto: null, guidato: null };
+function applicaGuidato() {
+  var precedente = ROWS;   // per non perdere anche le righe aggiunte a mano quando si cambia uno stile (vedi materializza)
+  ROWS = proponiGuidato(VOCI, MAPPA); STATO.guidato = ROWS;
+  MANUALI.forEach(function (pos) {
+    var o = precedente[pos], n = ROWS[pos];
+    if (o && n) { n.az = o.az; n.num = o.num; n.tit = o.tit; n.pag = o.pag; n.g = 'manuale'; }
+  });
+  render(); aggiornaAnteprima(); aggiornaConfronto();
+}
+// Unico punto che calcola (e ricorda) le righe di una modalità quando non sono ancora state calcolate. C'erano
+// tre copie di questa stessa idea (qui, nel confronto, nel "usa qui l'altra") scritte separatamente: una si è
+// dimenticata di riportare le righe aggiunte a mano, e siccome il confronto gira dopo OGNI modifica, la guidata
+// veniva creata (vuota, senza la riga nuova) ancora prima che l'utente la aprisse. Un solo punto, un solo rischio.
+function materializza(m, sorgente) {
+  if (!STATO[m]) {
+    STATO[m] = (m === 'guidato') ? proponiGuidato(VOCI, MAPPA) : proponi(VOCI);
+    if (sorgente) MANUALI.forEach(function (pos) {
+      var o = sorgente[pos], n = STATO[m][pos];
+      if (o && n) { n.az = o.az; n.num = o.num; n.tit = o.tit; n.pag = o.pag; n.g = 'manuale'; }
+    });
+  }
+  return STATO[m];
+}
+function impostaModo(m) {
+  var precedente = ROWS;
+  STATO[MODO] = precedente;
+  MODO = m;
+  ROWS = materializza(m, precedente);
+  $('schemaGuidato').hidden = m !== 'guidato';
+  $('cardGruppi').hidden = m === 'guidato';
+  document.querySelectorAll('input[name=modo]').forEach(function (e) { e.checked = e.value === m; });
+  render();
+  if (m === 'guidato') disegnaSchema();
+  aggiornaConfronto();
+}
+
+// ── Confronto tra le due modalità ────────────────────────────────────────
+function conRows(rows, fn) { var s = ROWS; ROWS = rows; try { return fn(); } finally { ROWS = s; } }
+function esitoRows(rows) {
+  return conRows(rows, function () {
+    var avv = ricalcola().filter(function (a) { return !a.lieve; }).length, j = costruisci();
+    return { cap: j.index_chapters.length, sez: j.index_chapters.reduce(function (t, c) { return t + c.sections.length; }, 0), avv: avv, j: j };
+  });
+}
+// Confronto RIGA PER RIGA (non per titolo): ra[i] e rg[i] vengono dalla stessa voce i (proponi() e proponiGuidato()
+// scorrono voci nello stesso ordine), quindi si può dire con esattezza, per ogni riga, cosa decide ciascuna
+// modalità — e portare quella decisione nell'altra con un clic, invece di dover rifare tutto a mano.
+// Confronta il numero EFFETTIVO (r.eff, quello che finisce nel JSON — per molte righe r.num resta vuoto e il
+// numero lo assegna ricalcola() in base alla posizione) — non il numero grezzo proposto, altrimenti due righe
+// che risultano identiche una volta esportate (tipico dei libri senza numeri, come Alberts) appaiono diverse
+// solo perché una modalità lo scrive subito e l'altra lo calcola dopo.
+function etichettaRiga(r) {
+  if (!r || r.az === 'skip') return null;
+  var n = r.eff !== '' && r.eff != null ? r.eff : r.num;
+  return (r.az === 'cap' ? 'Cap. ' : '') + (n ? n + ' ' : '') + r.tit.trim();
+}
+function differenzeRighe(ra, rg) {
+  var out = [];
+  for (var i = 0; i < ra.length; i++) {
+    if (VOCI[i] && VOCI[i].tipo === 'qr') continue;
+    var ea = etichettaRiga(ra[i]), eg = etichettaRiga(rg[i]);
+    if (ea === eg) continue;                    // entrambe 'skip', o stessa azione/numero/titolo: d'accordo
+    out.push({ i: i, pdf: ra[i].pdf, ea: ea, eg: eg });
+  }
+  return out;
+}
+// Il numero copiato è quello EFFETTIVO (vedi sopra), non quello grezzo: così la riga unita mantiene esattamente
+// il numero che l'utente ha visto e scelto nel confronto, invece di farselo ricalcolare dalla posizione che ha
+// nell'altra modalità (quasi sempre uguale, ma non è garantito se le due modalità dividono i capitoli diversamente).
+function copiaRiga(r) {
+  var n = r.eff !== '' && r.eff != null ? String(r.eff) : r.num;
+  return { i: r.i, az: r.az, num: n, tit: r.tit, pag: r.pag, pdf: r.pdf, g: 'importata', auto: '', eff: '', capDi: null, avv: [] };
+}
+function altraModalita() {
+  var altra = materializza(MODO === 'auto' ? 'guidato' : 'auto', ROWS);
+  conRows(altra, ricalcola);          // popola .eff su ciascuna riga prima di usarle (vedi copiaRiga/etichettaRiga)
+  return altra;
+}
+function usaRigaAltra(i) {
+  var altra = altraModalita();
+  ROWS[i] = copiaRiga(altra[i]);
+  render(); salva(); aggiornaConfronto();
+}
+function usaBulkAltra() {
+  ricalcola();                        // popola .eff anche sulla modalità in uso, per lo stesso motivo di altraModalita()
+  var altra = altraModalita();
+  var diff = MODO === 'auto' ? differenzeRighe(ROWS, altra) : differenzeRighe(altra, ROWS);
+  var n = 0;
+  diff.forEach(function (d) {
+    var mia = ROWS[d.i], sua = altra[d.i];
+    if (mia.az !== 'skip' || sua.az === 'skip') return;   // solo aggiunte: dove QUI non c'è nulla e l'altra ha qualcosa
+    ROWS[d.i] = copiaRiga(sua); n++;
+  });
+  render(); salva(); aggiornaConfronto();
+  $('esito').textContent = n ? 'Aggiunte ' + n + ' voci dall\'altra modalità.' : 'Nessuna voce da aggiungere in blocco: guarda le righe che differiscono qui sotto.';
+  setTimeout(function () { $('esito').textContent = ''; }, 5000);
+}
+// ── Aggiungere a mano una riga che nessuna delle due modalità propone ───────
+// ATTENZIONE: il campo r.i di ogni riga NON è solo informativo — la tabella lo usa (data-i) per sapere quale
+// elemento di ROWS modificare quando l'utente scrive in una cella (vedi il listener su #tab). Inserire una riga
+// senza rinumerare r.i su tutte le righe successive farebbe scrivere le modifiche sulla riga sbagliata: per questo
+// si aggiorna qui, su ogni riga (di ROWS e dell'altra modalità) dal punto di inserimento in poi.
+var PROSSIMO_ID_MANUALE = -1, MANUALI = [];
+function rinumera(arr, daPos) { for (var k = daPos; k < arr.length; k++) if (arr[k]) arr[k].i = k; }
+// Allunga SOLO VOCI e STILE_DI (i dati condivisi da entrambe le modalità): chi calcola le righe — proponi()/
+// proponiGuidato(), sia dal vivo sia al ricaricamento della pagina — troverà da sé la lunghezza giusta.
+function inserisciVuota(pos) {
+  var rifPdf = (VOCI[pos - 1] && VOCI[pos - 1].pdfPagina) || (VOCI[pos] && VOCI[pos].pdfPagina) || 1;
+  VOCI.splice(pos, 0, { tipo: 'testo', numero: null, titolo: '', pagina: null, pdfPagina: rifPdf, col: 'U', x0: 0, h: null, font: '', fontN: '', manuale: true });
+  STILE_DI.splice(pos, 0, 'manuale' + (PROSSIMO_ID_MANUALE--));
+}
+function aggiungiRigaManuale(dopoI) {
+  var pos = dopoI + 1;
+  inserisciVuota(pos);
+  MANUALI.push(pos);
+  function nuovaRiga() { return { i: pos, az: 'sez', num: '', tit: '', pag: '', pdf: VOCI[pos].pdfPagina, g: 'manuale', auto: '', eff: '', capDi: null, avv: [] }; }
+  ROWS.splice(pos, 0, nuovaRiga());
+  STATO[MODO] = ROWS;
+  var altro = MODO === 'auto' ? 'guidato' : 'auto';
+  if (STATO[altro]) STATO[altro].splice(pos, 0, nuovaRiga());
+  rinumera(ROWS, pos); if (STATO[altro]) rinumera(STATO[altro], pos);
+  render(); salva(); aggiornaConfronto();
+  var tr = document.getElementById('r' + pos);
+  if (tr) {
+    tr.classList.add('riga-nuova'); tr.scrollIntoView({ block: 'center' });
+    var input = tr.querySelector('input.tit'); if (input) input.focus();
+  }
+}
+function aggiornaConfronto() {
+  if (!VOCI.length || !ROWS.length) return;
+  var ra = MODO === 'auto' ? ROWS : materializza('auto', ROWS);
+  var rg = MODO === 'guidato' ? ROWS : materializza('guidato', ROWS);
+  var A = esitoRows(ra), G = esitoRows(rg);
+  var diff = differenzeRighe(ra, rg);
+  var inUso = MODO === 'auto' ? 'automatica' : 'guidata';
+  $('cfInUso').textContent = inUso;
+  $('cfAuto').disabled = MODO === 'auto'; $('cfGuid').disabled = MODO === 'guidato';
+  $('confrontoRiga').textContent = 'Confronto tra le due modalità — automatica: ' + A.cap + ' cap., ' + A.sez + ' sez., ' + A.avv + ' avvisi · guidata: '
+    + G.cap + ' cap., ' + G.sez + ' sez., ' + G.avv + ' avvisi · in uso: ' + inUso + (diff.length ? ' · righe diverse: ' + diff.length : ' · nessuna differenza');
+  $('tabConf').querySelector('tbody').innerHTML =
+    '<tr><td>Capitoli</td><td>' + A.cap + '</td><td>' + G.cap + '</td></tr>'
+    + '<tr><td>Sezioni</td><td>' + A.sez + '</td><td>' + G.sez + '</td></tr>'
+    + '<tr><td>Avvisi (struttura)</td><td>' + A.avv + '</td><td>' + G.avv + '</td></tr>';
+  var aggiungibili = diff.filter(function (d) { return (MODO === 'auto' ? ra : rg)[d.i].az === 'skip' && (MODO === 'auto' ? rg : ra)[d.i].az !== 'skip'; }).length;
+  $('cfBulk').textContent = 'Aggiungi qui tutte le voci che solo l\'altra modalità ha (' + aggiungibili + ')';
+  $('cfBulk').disabled = !aggiungibili;
+  $('cfDiffInfo').textContent = diff.length + ' righe diverse su ' + VOCI.length + ' — sotto solo quelle (dove le due modalità sono d\'accordo non compare nulla).';
+  var LIMITE = 250;
+  $('tabConfRighe').querySelector('tbody').innerHTML = diff.slice(0, LIMITE).map(function (d) {
+    var mancaA = d.ea === null, mancaG = d.eg === null;
+    return '<tr' + (mancaA || mancaG ? ' class="avviso"' : '') + '>'
+      + '<td class="c-pdf"><a href="#" data-p="' + d.pdf + '">' + d.pdf + '</a></td>'
+      + '<td' + (mancaA ? ' class="cf-manca"' : '') + '>' + (d.ea === null ? '—' : esc(d.ea)) + '</td>'
+      + '<td' + (mancaG ? ' class="cf-manca"' : '') + '>' + (d.eg === null ? '—' : esc(d.eg)) + '</td>'
+      + '<td><button class="cf-usa" data-i="' + d.i + '" title="Porta qui, nella modalità in uso, la versione dell\'altra">'
+      + (MODO === 'auto' ? '← guidata' : 'automatica →') + '</button></td></tr>';
+  }).join('') + (diff.length > LIMITE ? '<tr><td colspan="4" style="color:var(--mut)">… e altre ' + (diff.length - LIMITE) + ' righe diverse.</td></tr>' : '');
+}
+
+function ricalcola() {
+  var capNum = 0, cur = null, k = 0;
+  ROWS.forEach(function (r) {
+    r.auto = ''; r.eff = ''; r.capDi = null; r.avv = [];
+    if (r.az === 'cap') {
+      var n = /^\d+$/.test(r.num.trim()) ? parseInt(r.num, 10) : capNum + 1;
+      if (!r.num.trim()) r.auto = String(n);
+      r.eff = n; capNum = n; cur = n; k = 0;
+    } else if (r.az === 'sez') {
+      r.capDi = cur;
+      if (cur === null) return;
+      var m = r.num.trim().match(/^(\d+)\.(\d+)$/);
+      if (r.num.trim()) { r.eff = r.num.trim(); if (m && +m[1] === cur) k = Math.max(k, +m[2]); }
+      else { k++; r.eff = cur + '.' + k; r.auto = r.eff; }
+    }
+  });
+  var avvisi = [];
+  function av(r, t) { r.avv.push(t); avvisi.push({ i: r.i, t: t }); }
+  var prevCap = null, lastPag = null, perCap = {}, sezPerCap = {};
+  ROWS.forEach(function (r) {
+    if (r.az === 'skip') return;
+    if (r.az === 'cap') {
+      if (prevCap !== null) {
+        if (r.eff === prevCap) av(r, 'Capitolo ' + r.eff + ' ripetuto');
+        else if (r.eff !== prevCap + 1) av(r, 'Salto di capitolo: dopo il ' + prevCap + ' viene il ' + r.eff);
+      }
+      prevCap = r.eff;
+    } else {
+      if (r.capDi === null) { av(r, 'Sezione prima del primo capitolo: verrà scartata'); return; }
+      sezPerCap[r.capDi] = (sezPerCap[r.capDi] || 0) + 1;
+      var m = String(r.eff).match(/^(\d+)\.(\d+)$/);
+      if (m) {
+        if (+m[1] !== r.capDi) av(r, 'Sezione ' + r.eff + ' sotto il capitolo ' + r.capDi);
+        else {
+          var last = perCap[r.capDi] || 0, x = +m[2];
+          if (x === last) av(r, 'Sezione ' + r.eff + ' ripetuta');
+          else if (x > last + 1) av(r, 'Nel capitolo ' + r.capDi + ' manca ' + r.capDi + '.' + (last + 1) + (x > last + 2 ? ' (e fino a ' + r.capDi + '.' + (x - 1) + ')' : ''));
+          perCap[r.capDi] = Math.max(last, x);
+        }
+      }
+    }
+    var p = pagInt(r.pag);
+    // Le pagine non servono ad Atlante (legge solo i titoli): i problemi di pagina si contano a parte e non
+    // riempiono la lista degli avvisi né colorano le righe.
+    function avPag() { avvisi.push({ i: r.i, t: 'pagina', lieve: true, pag: true }); }
+    if (r.pag.trim() === '') { if (r.az === 'sez') avPag(); }
+    else if (p === null) avPag();
+    else { if (lastPag !== null && p < lastPag) avPag(); lastPag = p; }
+  });
+  ROWS.forEach(function (r) {
+    if (r.az === 'cap' && !sezPerCap[r.eff]) {
+      avvisi.push({ i: r.i, t: 'Il capitolo ' + r.eff + ' non ha sezioni', lieve: true });
+    }
+  });
+  return avvisi;
+}
+
+// ── 3. Disegno ───────────────────────────────────────────────────────────
+function opt(v) {
+  return ['cap', 'sez', 'skip'].map(function (k) { return '<option value="' + k + '"' + (k === v ? ' selected' : '') + '>' + { cap: 'Capitolo', sez: 'Sezione', skip: 'Ignora' }[k] + '</option>'; }).join('');
+}
+function rigaHTML(r) {
+  return '<tr id="r' + r.i + '" class="az-' + r.az + '">'
+    + '<td class="c-az"><select data-i="' + r.i + '">' + opt(r.az) + '</select></td>'
+    + '<td class="c-num"><input class="num" data-i="' + r.i + '" value="' + esc(r.num) + '" placeholder="' + esc(r.auto) + '"></td>'
+    + '<td><input class="tit" data-i="' + r.i + '" value="' + esc(r.tit) + '"></td>'
+    + '<td class="c-pag"><input class="pag" data-i="' + r.i + '" value="' + esc(r.pag) + '"></td>'
+    + '<td class="c-pdf"><a href="#" data-p="' + r.pdf + '">' + r.pdf + '</a></td>'
+    + '<td class="c-rg">' + esc(RG[r.g] || '') + '</td>'
+    + '<td><button class="riga-piu" data-i="' + r.i + '" title="Aggiungi una riga vuota subito dopo questa">+</button></td></tr>';
+}
+function render() {
+  ricalcola();
+  var mostra = $('mostraIgn').checked, html = '';
+  ROWS.forEach(function (r) { if (r.az !== 'skip' || mostra) html += rigaHTML(r); });
+  $('tab').innerHTML = html;
+  aggiorna();
+  aggiornaGruppi();
+}
+function aggiorna() {           // senza ridisegnare la tabella (non si perde il cursore)
+  var avvisi = ricalcola();
+  ROWS.forEach(function (r) {
+    var tr = $('r' + r.i); if (!tr) return;
+    tr.className = 'az-' + r.az + (r.avv.length ? ' avviso' : '');
+    var n = tr.querySelector('input.num'); if (n) n.placeholder = r.auto;
+    tr.title = r.avv.join('\n');
+  });
+  var nCap = ROWS.filter(function (r) { return r.az === 'cap'; }).length;
+  var nSez = ROWS.filter(function (r) { return r.az === 'sez' && r.capDi !== null; }).length;
+  var gravi = avvisi.filter(function (a) { return !a.lieve; });
+  var senzaSez = avvisi.filter(function (a) { return a.lieve && !a.pag; }).length, pagAnom = avvisi.filter(function (a) { return a.pag; }).length;
+  $('riep').textContent = nCap + ' capitoli · ' + nSez + ' sezioni · ' + gravi.length + ' avvisi'
+    + (senzaSez ? ' (più ' + senzaSez + ' capitoli senza sezioni)' : '')
+    + (pagAnom ? ' · ' + pagAnom + ' righe con pagina mancante o anomala (le pagine non servono ad Atlante)' : '');
+  var html = gravi.slice(0, 80).map(function (a) { return '<a href="#" data-va="' + a.i + '">Riga ' + (a.i + 1) + ': ' + esc(a.t) + '</a>'; }).join('');
+  if (gravi.length > 80) html += '<div style="color:var(--mut)">… e altri ' + (gravi.length - 80) + '.</div>';
+  $('avvisi').innerHTML = html;
+  salva();
+}
+function aggiornaGruppi() {
+  var conta = {}, az = {};
+  ROWS.forEach(function (r) { conta[r.g] = (conta[r.g] || 0) + 1; (az[r.g] = az[r.g] || {})[r.az] = 1; });
+  $('gruppi').innerHTML = ORDINE.filter(function (g) { return conta[g]; }).map(function (g) {
+    var ks = Object.keys(az[g]), cur = ks.length === 1 ? ks[0] : '';
+    return '<div class="gr"><span class="et">' + esc(ETICHETTE[g]) + '</span><span class="n">' + conta[g] + '</span>'
+      + '<select data-g="' + g + '"><option value=""' + (cur === '' ? ' selected' : '') + '>— misto —</option>'
+      + ['cap', 'sez', 'skip'].map(function (k) { return '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + { cap: 'Capitolo', sez: 'Sezione', skip: 'Ignora' }[k] + '</option>'; }).join('')
+      + '</select></div>';
+  }).join('');
+}
+
+// ── 4. Esporta ───────────────────────────────────────────────────────────
+function leggiMeta() {
+  function v(id) { return $(id).value.trim(); }
+  var pub = v('m_publisher'), key = pub.toLowerCase();
+  if (key === 'zanichelli' || key === 'cea') pub = 'Zanichelli-CEA';
+  return { id: v('m_id'), title: v('m_title'), author: v('m_author'), publisher: pub, subject: v('m_subject'), edition: v('m_edition'),
+           year: parseInt(v('m_year'), 10) || null, volume: parseInt(v('m_volume'), 10) || null, type: $('m_type').value };
+}
+function costruisci() {
+  ricalcola();
+  var cap = [], cur = null;
+  ROWS.forEach(function (r) {
+    if (r.az === 'cap') { cur = { number: r.eff, title: r.tit.trim(), page_start: pagInt(r.pag), sections: [] }; cap.push(cur); }
+    else if (r.az === 'sez' && cur) cur.sections.push({ number: String(r.eff), title: r.tit.trim(), page_start: pagInt(r.pag) });
+  });
+  cap.forEach(function (c) { if (c.page_start === null && c.sections.length) c.page_start = c.sections[0].page_start; });
+  return Object.assign({}, leggiMeta(), { index_chapters: cap });
+}
+function scarica() {
+  var obj = costruisci();
+  var nome = (obj.id || 'indice').replace(/[^\w.\-]+/g, '_') + '.json';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
+  a.download = nome; a.click();
+}
+
+// ── 5. Salvataggio automatico del lavoro ─────────────────────────────────
+function salva() {
+  if (!CHIAVE) return;
+  try {
+    localStorage.setItem(CHIAVE, JSON.stringify({ meta: leggiMeta(), righe: ROWS.map(function (r) { return [r.az, r.num, r.tit, r.pag]; }),
+      txt: $('txtArea').value, pal: $('txtPallini').checked, ver: VER_SALVATAGGIO, mod: MODO, map: MAPPA, cs: CAP_CAMPIONE, man: MANUALI }));
+  } catch (e) { /* senza salvataggio si lavora lo stesso */ }
+}
+function ripristina() {
+  try {
+    var s = JSON.parse(localStorage.getItem(CHIAVE) || 'null');
+    if (!s || !s.righe) return false;
+    // Un lavoro salvato con una versione precedente della pagina parte da una proposta diversa: riprenderlo
+    // rimetterebbe la vecchia classificazione sopra quella nuova. Si mette da parte e si riparte dalla proposta.
+    if (s.ver !== VER_SALVATAGGIO) { RIP_VECCHIO = true; return false; }
+    // Rimette le righe aggiunte a mano PRIMA del controllo sulla lunghezza (VOCI/STILE_DI si allungano una volta
+    // sola: la riga vera e propria la ricrea da sé, della lunghezza giusta, chi calcola ROWS due righe sotto).
+    (s.man || []).forEach(function (pos) { inserisciVuota(pos); });
+    MANUALI = (s.man || []).slice();
+    ROWS = proponi(VOCI);
+    if (s.mod === 'guidato' && s.map) { MODO = 'guidato'; MAPPA = s.map; CAP_CAMPIONE = s.cs || 0; ROWS = proponiGuidato(VOCI, MAPPA); }
+    if (s.righe.length !== ROWS.length) return false;    // non dovrebbe più succedere: controllo di sicurezza
+    s.righe.forEach(function (x, i) { ROWS[i].az = x[0]; ROWS[i].num = x[1]; ROWS[i].tit = x[2]; ROWS[i].pag = x[3]; });
+    var m = s.meta || {};
+    ['id', 'title', 'author', 'publisher', 'subject', 'edition'].forEach(function (k) { $('m_' + k).value = m[k] || ''; });
+    $('m_year').value = m.year || ''; $('m_volume').value = m.volume || ''; if (m.type) $('m_type').value = m.type;
+    if (typeof s.txt === 'string' && s.txt) { $('txtArea').value = s.txt; $('txtPallini').checked = !!s.pal; TXT_RIPRESO = true; TXT_GEN = null; aggiornaInfoTesto(); }
+    return true;
+  } catch (e) { return false; }
+}
+
+// ── 5c. Indice testuale ──────────────────────────────────────────────────
+// Atlante legge dell'indice solo i titoli (mai le pagine) e, se manca index_chapters, accetta un testo
+// (campo chapters_summary). Il testo non richiede di decidere cosa è capitolo e cosa è sezione: una voce per
+// riga, nell'ordine di lettura, con il rientro come livello, senza pagine, puntini di guida e rimandi QR.
+var VOCI = [], TXT_GEN = null, TXT_RIPRESO = false;
+function pulisciTit(t) {
+  return String(t || '').replace(/\s*(?:[.·…]\s?){3,}[\s.·…]*(?:\d{1,4}|[A-Za-z]{1,2}-\d{1,3}|[ivxlc]{1,6}|p)?\s*$/i, '').replace(/\s+/g, ' ').trim();
+}
+function costruisciTesto(conPallini) {
+  var minX = {}, righe = [];
+  // Titoli in carattere più grande che tornano più volte (es. titoli di capitolo senza numero, come in Mencuccini):
+  // livello 0, e tutto il resto scala di uno. Solo se non ci sono già marcatori "CAPITOLO N".
+  var nMarc = VOCI.filter(function (v) { return v.tipo === 'capitolo'; }).length, head = null;
+  if (nMarc < 3) {
+    var hs = VOCI.filter(function (v) { return v.tipo !== 'qr' && v.h != null; }).map(function (v) { return v.h; }).sort(function (a, b) { return a - b; });
+    var med = hs.length ? hs[Math.floor(hs.length / 2)] : 0, cls = {};
+    VOCI.forEach(function (v) {
+      var tt = (v.titolo || '').trim();
+      if (v.tipo === 'qr' || v.tipo === 'numerata' || v.tipo === 'pallino' || v.h == null || tt.length < 4 || /^[^\wÀ-ÿ]/.test(tt) || v.h < med + 2) return;
+      var k = Math.round(v.h * 2) / 2; cls[k] = (cls[k] || 0) + 1;
+    });
+    Object.keys(cls).forEach(function (k) { if (cls[k] >= 3 && (head === null || cls[k] > cls[head])) head = +k; });
+  }
+  VOCI.forEach(function (v) { var k = v.pdfPagina + v.col; minX[k] = Math.min(minX[k] === undefined ? 1e9 : minX[k], v.x0); });
+  VOCI.forEach(function (v) {
+    if (v.tipo === 'qr') return;
+    if (v.tipo === 'pallino' && !conPallini) return;
+    var t = pulisciTit(v.titolo);
+    var rel = v.x0 - minX[v.pdfPagina + v.col];
+    var liv = rel < 8 ? 0 : rel < 22 ? 1 : rel < 40 ? 2 : 3, etic = '';
+    if (v.tipo === 'capitolo') { etic = v.numero + ' '; liv = 0; }
+    else if (v.tipo === 'numerata') { etic = v.numero + ' '; liv = /^\d+$/.test(v.numero) ? liv : Math.min(3, (String(v.numero).match(/\./g) || []).length); }
+    else if (v.tipo === 'pallino') { etic = '- '; liv = Math.max(liv, 2); }
+    if (head !== null && v.tipo !== 'capitolo') {
+      var titolo0 = v.tipo !== 'numerata' && v.tipo !== 'pallino' && v.h != null && Math.round(v.h * 2) / 2 === head;
+      liv = titolo0 ? 0 : Math.min(3, liv + 1);
+    }
+    if (!/[A-Za-zÀ-ÿ]{3}/.test(etic + t)) return;            // righe di soli numeri o simboli ("CAPITOLO 21" resta)
+    var riga = (etic + t).trim().replace(/^(CAPITOLO|Capitolo|CAP\.)\s+(\d) (\d)(?!\d)/, '$1 $2$3');   // "CAPITOLO 2 1" → "CAPITOLO 21"
+    righe.push('  '.repeat(liv) + riga);
+  });
+  return righe.join('\n');
+}
+function aggiornaInfoTesto() {
+  var t = $('txtArea').value, n = t ? t.split('\n').length : 0;
+  $('txtInfo').textContent = n + ' righe, ' + t.length.toLocaleString('it-IT') + ' caratteri'
+    + (t.length > 100000 ? ' — SUPERA il limite di 100.000 caratteri con cui Atlante taglia l\'indice: togli le sottovoci o cancella righe' : '');
+}
+function rigeneraTesto() {
+  TXT_GEN = costruisciTesto($('txtPallini').checked);
+  $('txtArea').value = TXT_GEN;
+  aggiornaInfoTesto();
+  salva();
+}
+function jsonTestuale() {
+  return Object.assign({}, leggiMeta(), { index_chapters: [], chapters_summary: $('txtArea').value.trim() });
+}
+function copiaNegliAppunti(testo, elEsito) {
+  function fine(ok) {
+    elEsito.textContent = ok ? 'Copiato negli appunti: ora incollalo in Atlante.' : 'Non riesco a copiare da qui: usa «Scarica».';
+    setTimeout(function () { elEsito.textContent = ''; }, 5000);
+  }
+  function vecchio() {
+    try {
+      var t = document.createElement('textarea'); t.value = testo; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); var ok = document.execCommand('copy'); document.body.removeChild(t); fine(ok);
+    } catch (e) { fine(false); }
+  }
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(testo).then(function () { fine(true); }, vecchio);
+  else vecchio();
+}
+function scaricaJson(obj) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
+  a.download = (obj.id || 'indice').replace(/[^\w.\-]+/g, '_') + '.json'; a.click();
+}
+
+// ── 5b. Dati del libro proposti, senza riscrivere tutto ──────────────────
+// Da tre fonti: il nome del file ("Autore_Titolo_Editore.pdf", come li nomina «Scarica programmi»),
+// gli indici già salvati nell'app (editori e materie, se questo browser li rende leggibili: dipende
+// da dove è aperta la pagina) e l'ultimo libro lavorato qui (materia e tipo).
+var PROPOSTI = ['id', 'title', 'author', 'publisher', 'subject'];
+var EDITORI_APP = ['Zanichelli-CEA', 'Pearson', 'McGraw-Hill', 'EdiSES', 'Piccin', 'Edi Ermes', 'Elsevier', 'UTET', 'Idelson-Gnocchi', 'Il Mulino', 'Franco Angeli'];
+function soloLettere(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function suggerimenti() {
+  var pub = {}, sub = {};
+  EDITORI_APP.forEach(function (p) { pub[p] = 1; });
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k.indexOf('mfb_index_') !== 0) continue;
+      var e = JSON.parse(localStorage.getItem(k) || 'null');
+      if (e && e.publisher) pub[e.publisher] = 1;
+      if (e && e.subject) sub[e.subject] = 1;
+    }
+  } catch (x) { /* nessun dato dell'app leggibile da qui */ }
+  function opts(o) { return Object.keys(o).map(function (v) { return '<option value="' + esc(v) + '">'; }).join(''); }
+  $('dl_pub').innerHTML = opts(pub); $('dl_sub').innerHTML = opts(sub);
+  return Object.keys(pub);
+}
+function compilaDati(file) {
+  ['id', 'title', 'author', 'publisher', 'subject', 'edition', 'year', 'volume'].forEach(function (k) { $('m_' + k).value = ''; });
+  var noti = suggerimenti();
+  var base = file.name.replace(/\.pdf$/i, ''), parti = base.split('_').map(function (s) { return s.trim(); }).filter(Boolean);
+  var autore = '', titolo = '', editore = '';
+  if (parti.length >= 3) { autore = parti[0]; editore = parti[parti.length - 1]; titolo = parti.slice(1, -1).join(' '); }
+  else if (parti.length === 2) { autore = parti[0]; titolo = parti[1]; }
+  else titolo = base;
+  titolo = titolo.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+  // l'editore scritto come nel nome del file ("McGraw Hill", "Edises") → come lo scrive l'app
+  var ke = soloLettere(editore);
+  if (ke) {
+    var trovato = noti.filter(function (p) { var kp = soloLettere(p); return kp === ke || (ke.length >= 6 && kp.indexOf(ke) === 0); })[0];
+    editore = trovato || editore;
+  }
+  var id = (autore.replace(/\s+/g, '') + '_' + (titolo.split(' ')[0] || '')).replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '');
+  var ultimo = {};
+  try { ultimo = JSON.parse(localStorage.getItem('segna_indice:ultimo') || '{}'); } catch (e) {}
+  var v = { id: id, title: titolo, author: autore, publisher: editore, subject: ultimo.subject || '' };
+  PROPOSTI.forEach(function (k) { $('m_' + k).value = v[k]; $('m_' + k).classList.toggle('proposto', !!v[k]); });
+  if (ultimo.type) $('m_type').value = ultimo.type;
+}
+
+// ── 6. Caricamento del PDF ───────────────────────────────────────────────
+async function caricaFile(file) {
+  FILE = file; $('stato').textContent = 'Lettura del PDF in corso…';
+  try {
+    var pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    var pagine = [];
+    for (var p = 1; p <= pdf.numPages; p++) {
+      var page = await pdf.getPage(p), tc = await page.getTextContent();
+      pagine.push({ items: tc.items, larghezza: page.getViewport({ scale: 1 }).width });
+    }
+    var r = EstraiRighe.elabora(pagine);
+    if (r.voci.length < 5) { $('stato').textContent = 'Nel PDF non ho trovato abbastanza testo: potrebbe essere una scansione.'; return; }
+    ROWS = proponi(r.voci);
+    VOCI = r.voci;
+    MODO = 'auto'; STATO = { auto: null, guidato: null }; MANUALI = []; ROWS_AUTO = JSON.parse(JSON.stringify(ROWS)); costruisciStili();
+    if (PDFURL) URL.revokeObjectURL(PDFURL);
+    PDFURL = URL.createObjectURL(file);
+    CHIAVE = 'segna_indice:' + file.name + ':' + file.size;
+    compilaDati(file);
+    TXT_RIPRESO = false; $('txtPallini').checked = false;
+    var rip = ripristina();
+    if (!TXT_RIPRESO) rigeneraTesto();
+    if (rip) { PROPOSTI.forEach(function (k) { $('m_' + k).classList.remove('proposto'); }); }
+    $('ripr').textContent = rip ? 'Ho ripreso il lavoro che avevi già fatto su questo file.'
+      : (RIP_VECCHIO ? 'Avevi un lavoro salvato con una versione precedente della pagina: l\'ho messo da parte e ho ricalcolato la proposta.' : '');
+    $('scheda').hidden = false;
+    // Controllo dell'ordine di lettura: in un indice letto bene le pagine e i numeri di capitolo/sezione non
+    // tornano indietro. Le pagine PDF dove succede sono da guardare (può anche essere un elenco di riquadri
+    // che riparte da pagine più basse, come in Kring o Occhini: in quel caso non è un errore).
+    var sospette = [], pagPrec = null, numPrec = null;
+    r.voci.forEach(function (v) {
+      if (v.tipo === 'qr') return;
+      var torna = false;
+      if (v.pagina !== null && /^\d+$/.test(v.pagina)) { var pg = +v.pagina; if (pagPrec !== null && pg < pagPrec) torna = true; pagPrec = pg; }
+      var mn = v.tipo === 'numerata' && String(v.numero).match(/^(\d+)\.(\d+)$/);
+      if (mn) { var nn = [+mn[1], +mn[2]]; if (numPrec && (nn[0] < numPrec[0] || (nn[0] === numPrec[0] && nn[1] < numPrec[1]))) torna = true; numPrec = nn; }
+      if (torna && sospette.indexOf(v.pdfPagina) === -1) sospette.push(v.pdfPagina);
+    });
+    $('stato').textContent = file.name + ' — ' + pdf.numPages + ' pagine, ' + r.voci.length + ' righe ricostruite.'
+      + (sospette.length ? ' Pagine del PDF da controllare (pagine o numeri che tornano indietro): ' + sospette.join(', ') + '.' : ' Ordine di lettura senza incongruenze.');
+    render();
+    sincronizzaModo();
+    aggiornaConfronto();
+  } catch (e) { $('stato').textContent = 'Errore nella lettura del PDF: ' + e.message; }
+}
+
+$('pdf').addEventListener('change', function (e) { if (e.target.files[0]) caricaFile(e.target.files[0]); });
+$('scarica').addEventListener('click', scarica);
+document.querySelectorAll('input[name=modo]').forEach(function (e) {
+  e.addEventListener('change', function (ev) { if (ev.target.checked) impostaModo(ev.target.value); });
+});
+$('cfAuto').addEventListener('click', function () { if (MODO !== 'auto') impostaModo('auto'); });
+$('cfGuid').addEventListener('click', function () { if (MODO !== 'guidato') impostaModo('guidato'); });
+$('cfBulk').addEventListener('click', usaBulkAltra);
+$('tabConfRighe').addEventListener('click', function (e) {
+  var p = e.target.getAttribute && e.target.getAttribute('data-p');
+  if (p) { e.preventDefault(); window.open(PDFURL + '#page=' + p, '_blank'); return; }
+  var i = e.target.getAttribute && e.target.getAttribute('data-i');
+  if (i !== null && i !== undefined) usaRigaAltra(+i);
+});
+$('capCamp').addEventListener('change', function () { CAP_CAMPIONE = +this.value || 0; disegnaSchema(); salva(); });
+$('tabStili').addEventListener('change', function (ev) {
+  var k = ev.target.getAttribute && ev.target.getAttribute('data-k'); if (!k) return;
+  MAPPA[k] = ev.target.value; applicaGuidato();
+});
+$('copia').addEventListener('click', function () { copiaNegliAppunti(JSON.stringify(costruisci(), null, 2), $('esito')); });
+// ── Incorporato nell'app (iframe in bookIndexModal): passa il JSON al genitore invece di copia/scarica ──
+if (window.parent !== window) {
+  $('usaApp').style.display = '';
+  $('txtUsaApp').style.display = '';
+  $('usaApp').addEventListener('click', function () { window.parent.postMessage({ tipo: 'segna-indice:usa', json: costruisci() }, '*'); });
+  $('txtUsaApp').addEventListener('click', function () { window.parent.postMessage({ tipo: 'segna-indice:usa', json: jsonTestuale() }, '*'); });
+}
+$('txtRigenera').addEventListener('click', function () {
+  if ($('txtArea').value !== TXT_GEN && $('txtArea').value.trim() && !confirm('Rigenerando il testo perdi le correzioni che hai fatto qui sotto. Procedo?')) return;
+  rigeneraTesto();
+});
+$('txtPallini').addEventListener('change', function () {
+  if ($('txtArea').value !== TXT_GEN && $('txtArea').value.trim() && !confirm('Cambiando questa opzione il testo viene rigenerato e perdi le correzioni fatte qui sotto. Procedo?')) { $('txtPallini').checked = !$('txtPallini').checked; return; }
+  rigeneraTesto();
+});
+$('txtArea').addEventListener('input', function () { aggiornaInfoTesto(); salva(); });
+$('txtCopia').addEventListener('click', function () {
+  if (!$('txtArea').value.trim()) { $('txtInfo').textContent = 'Il testo è vuoto.'; return; }
+  copiaNegliAppunti(JSON.stringify(jsonTestuale(), null, 2), $('txtInfo'));
+});
+$('txtScarica').addEventListener('click', function () { if ($('txtArea').value.trim()) scaricaJson(jsonTestuale()); });
+$('mostraIgn').addEventListener('change', render);
+$('da_capo').addEventListener('click', function () {
+  if (!FILE || !confirm('Cancello le tue modifiche su questo file e ricomincio dalla proposta iniziale?')) return;
+  try { localStorage.removeItem(CHIAVE); } catch (e) {}
+  caricaFile(FILE);
+});
+['m_id', 'm_title', 'm_author', 'm_publisher', 'm_subject', 'm_edition', 'm_year', 'm_volume', 'm_type'].forEach(function (id) {
+  $(id).addEventListener('input', function () {
+    $(id).classList.remove('proposto');
+    if (id === 'm_subject' || id === 'm_type') {        // materia e tipo si ricordano per il libro dopo
+      try { localStorage.setItem('segna_indice:ultimo', JSON.stringify({ subject: $('m_subject').value.trim(), type: $('m_type').value })); } catch (e) {}
+    }
+    salva();
+  });
+});
+$('gruppi').addEventListener('change', function (e) {
+  var g = e.target.getAttribute('data-g'); if (!g || !e.target.value) return;
+  ROWS.forEach(function (r) { if (r.g === g) r.az = e.target.value; });
+  render();
+});
+// Una riga aggiunta a mano vale per entrambe le modalità: ogni modifica (non solo la prima, vedi materializza())
+// si riporta subito nella copia dell'altra modalità, se esiste già.
+function sincronizzaRigaManuale(i) {
+  if (MANUALI.indexOf(i) === -1) return;
+  var altro = STATO[MODO === 'auto' ? 'guidato' : 'auto'], n = altro && altro[i], o = ROWS[i];
+  if (n && o) { n.az = o.az; n.num = o.num; n.tit = o.tit; n.pag = o.pag; n.g = 'manuale'; }
+}
+$('tab').addEventListener('change', function (e) {
+  if (e.target.tagName !== 'SELECT') return;
+  var i = +e.target.getAttribute('data-i');
+  ROWS[i].az = e.target.value;
+  sincronizzaRigaManuale(i);
+  render();
+});
+$('tab').addEventListener('input', function (e) {
+  var i = e.target.getAttribute('data-i'); if (i === null) return;
+  i = +i;
+  var r = ROWS[i], c = e.target.className;
+  if (c === 'num') r.num = e.target.value; else if (c === 'tit') r.tit = e.target.value; else if (c === 'pag') r.pag = e.target.value;
+  sincronizzaRigaManuale(i);
+  aggiorna();
+});
+$('tab').addEventListener('click', function (e) {
+  var p = e.target.getAttribute && e.target.getAttribute('data-p');
+  if (p) { e.preventDefault(); window.open(PDFURL + '#page=' + p, '_blank'); return; }
+  var pi = e.target.getAttribute && e.target.getAttribute('data-i');
+  if (e.target.classList.contains('riga-piu') && pi !== null) aggiungiRigaManuale(+pi);
+});
+$('aggiungiCima').addEventListener('click', function () { aggiungiRigaManuale(-1); });
+$('avvisi').addEventListener('click', function (e) {
+  var i = e.target.getAttribute && e.target.getAttribute('data-va'); if (i === null || i === undefined) return;
+  e.preventDefault();
+  var tr = $('r' + i); if (!tr) return;
+  tr.scrollIntoView({ block: 'center' });
+  tr.classList.add('evid'); setTimeout(function () { tr.classList.remove('evid'); }, 1600);
+});
+</script>
+</body>
+</html>

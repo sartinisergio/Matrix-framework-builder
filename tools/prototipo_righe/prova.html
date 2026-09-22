@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Prova estrazione per righe</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="estrai_righe.js"></script>
+<style>
+  body { font: 14px/1.45 system-ui, sans-serif; margin: 0; padding: 20px; background: #f6f6f4; color: #222; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .nota { color: #666; margin: 0 0 16px; }
+  .barra { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  button, label.btn { background: #fff; border: 1px solid #bbb; border-radius: 6px; padding: 7px 12px; cursor: pointer; font: inherit; }
+  input[type=file] { display: none; }
+  #stat { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: none; }
+  #stat b { font-weight: 600; }
+  .due { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .col h2 { font-size: 14px; margin: 0 0 6px; }
+  .col p { margin: 0 0 6px; color: #666; font-size: 12.5px; }
+  pre { margin: 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; height: 68vh; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5 ui-monospace, Consolas, monospace; }
+  .senza { color: #b45309; }
+  @media (max-width: 800px) { .due { grid-template-columns: 1fr; } pre { height: 40vh; } }
+</style>
+</head>
+<body>
+<h1>Prova: estrazione dell'indice per righe</h1>
+<p class="nota">Prototipo, non collegato all'app. Il file non lascia il tuo computer. A sinistra il testo come lo produce oggi l'app; a destra quello ricostruito con le coordinate.</p>
+<div class="barra">
+  <label class="btn">Scegli un PDF di indice <input type="file" id="f" accept="application/pdf"></label>
+  <button id="scarica" disabled>Scarica il testo ricostruito</button>
+  <span id="msg"></span>
+</div>
+<div id="stat"></div>
+<div class="due">
+  <div class="col"><h2>Oggi (pdf.js unito con spazi)</h2><p>Le prime 6000 lettere.</p><pre id="vecchio"></pre></div>
+  <div class="col"><h2>Con le coordinate (una voce per riga: numero | titolo | pagina)</h2><p>Le voci senza pagina sono in arancione.</p><pre id="nuovo"></pre></div>
+</div>
+<script>
+var ultimo = '';
+function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+document.getElementById('f').addEventListener('change', async function (e) {
+  var file = e.target.files[0]; if (!file) return;
+  await elaboraFile(file);
+});
+async function elaboraFile(file) {
+  var msg = document.getElementById('msg');
+  msg.textContent = 'Lettura in corso…';
+  try {
+    var buf = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    var pagine = [];
+    for (var p = 1; p <= pdf.numPages; p++) {
+      var page = await pdf.getPage(p);
+      var tc = await page.getTextContent();
+      pagine.push({ items: tc.items, larghezza: page.getViewport({ scale: 1 }).width });
+    }
+    var vecchio = pagine.map(function (pg) { return EstraiRighe.testoPiatto(pg.items); }).join('\n');
+    var r = EstraiRighe.elabora(pagine);
+    ultimo = r.testo;
+    document.getElementById('vecchio').textContent = vecchio.slice(0, 6000);
+    document.getElementById('nuovo').innerHTML = r.testo.split('\n').map(function (l) {
+      var senza = /\|\s*$/.test(l) && !/^QR /.test(l);
+      return senza ? '<span class="senza">' + esc(l) + '</span>' : esc(l);
+    }).join('\n');
+    var utili = r.voci.filter(function (v) { return v.tipo !== 'qr'; });
+    var senzaPag = utili.filter(function (v) { return v.pagina === null; }).length;
+    var due = r.pagine.filter(function (p) { return p.colonne === 2; }).length;
+    var dubbie = r.voci.reduce(function (s, v) { return s + v.sillabazioniDubbie.length; }, 0);
+    var st = document.getElementById('stat'); st.style.display = 'block';
+    st.innerHTML = '<b>' + pdf.numPages + '</b> pagine (<b>' + due + '</b> a due colonne) · <b>' + r.voci.length + '</b> voci · con pagina <b>'
+      + (utili.length - senzaPag) + '</b> · senza pagina <b>' + senzaPag + '</b> · trattini a fine riga uniti in modo incerto <b>' + dubbie + '</b>';
+    document.getElementById('scarica').disabled = false;
+    msg.textContent = file.name;
+  } catch (err) { msg.textContent = 'Errore: ' + err.message; }
+}
+document.getElementById('scarica').addEventListener('click', function () {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([ultimo], { type: 'text/plain;charset=utf-8' }));
+  a.download = 'indice_righe.txt'; a.click();
+});
+</script>
+</body>
+</html>
